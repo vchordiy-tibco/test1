@@ -1,0 +1,8 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_docs" type="common">
+		<include file="aliases_TRA.xml" />
+		<dir src="${docssrcdir}/doc/html" dest="doc" dirperm="755" fileperm="444" plat="${ALL}"/>
+		<dir src="${docssrcdir}/doc/pdf" dest="doc" dirperm="755" fileperm="444" plat="${ALL}"/>
+	</component>
+</components>

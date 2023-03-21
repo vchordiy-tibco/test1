@@ -1,0 +1,11 @@
+
+
+<aliases>
+<alias name="tibcodir" value="/tsi/root/tibco"/>
+<alias name="extdir" value="/tsi/root/external"/>
+<alias name="tibcodir" value="/tsi/root/tibco"/>
+<alias name="bldsrcdir" value="env.bldsrcdir"/>
+<alias name="docssrcdir" value="/potsticker/products/pubs/docs4release/defcon/5.0.0"/>
+<alias name="scriptsdir" value="${bldsrcdir}/pkg_info/bom/5.0.0/scripts"/>
+
+</aliases>

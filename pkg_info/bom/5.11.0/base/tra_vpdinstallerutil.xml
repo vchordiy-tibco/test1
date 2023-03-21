@@ -1,0 +1,7 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_vpdinstallerutil" type="common">
+		<include file="aliases_TRA.xml" />
+		<file src="${VPD_INSTALLER_UTIL_PATH}/TIBCOInstallerUtility.jar" dest="lib/install/TIBCOInstallerUtility.jar" perm="555" plat="${ALL}"/>
+	</component>
+</components>

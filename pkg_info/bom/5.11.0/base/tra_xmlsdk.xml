@@ -1,0 +1,7 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_xmlsdk" type="common">
+		<include file="aliases_TRA.xml" />
+		<file src="${TIBCOXML_PATH}/TIBCOxml.jar" dest="lib/TIBCOxml.jar" perm="555" plat="${ALL}"/>
+	</component>
+</components>

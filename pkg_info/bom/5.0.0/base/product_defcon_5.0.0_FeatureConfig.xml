@@ -1,0 +1,76 @@
+<TIBCOInstallerFeatures>
+<productDef name="TIBCO Defcon 5.0.0" id="defcon" version="5.0.0" releaseType="base" 
+supportedPlatforms="win/x86_64,hpux/ia64,linux/x86_64,sol/sparc_64,sol/x86_64,aix/power_64" universalinstallerrelease="3.6.6" 
+universalinstallerversion="L" compatDisplayName="TIBCO Defcon" compatType="defcon" installDir="defcon/5.0"/>
+
+<customVariables>
+<variable name="bwplugin.home" value="${tibco.home}${fsp}bw${fsp}plugins"/>
+<variable name="defcon.home" value="${tibco.home}${fsp}bw${fsp}plugins${fsp}defcon"/>
+<variable name="bwplugin.home.esc" value="${tibco.home.esc}/bw/plugins"/>
+<variable name="defcon.home.esc" value="${tibco.home.esc}/bw/plugins/defcon"/>
+<variable name="minimum.rv.version" value="8.3.1"/>
+<variable name="minimum.bw.version" value="5.9.0"/>
+<variable name="minimum.tra.version" value="5.11.0"/>
+</customVariables>
+
+<installerFeature name="Runtime" version="5.0.0" installLocation="${bwplugin.home}">
+<assemblyList>
+<assembly uid="product_tibco_defcon_runtime" version="5.0.0"/>
+</assemblyList>
+<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Runtime" parentID="bw" type="feature" uid="AMBW Runtime_BW" 
+version="${minimum.bw.version}" vpduid="BW_runtime"/>
+<dependency description="TIBCO Rendezvous" parentID="rv" type="feature" uid="Runtime_rv" version="${minimum.rv.version}" vpduid="tibrv"/>
+<dependency description="TIBCO Runtime Agent" parentID="TRA" type="feature" uid="Runtime_TRA" version="${minimum.tra.version}" vpduid="TRA"/>
+<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+<property productAcronym="RV"/>
+<property minimumVersion="${minimum.rv.version}"/>
+<property vpdUID="tibrv"/>
+<property productAssemblyUID="product_tibco_rv_common"/>
+<property productAssemblyMinVersion="${minimum.rv.version}"/>
+<property showProgress="true"/>
+<property description="Get RV install location"/>
+</wizardAction>
+<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+<property productAcronym="TRA"/>
+<property minimumVersion="${minimum.tra.version}"/>
+<property vpdUID="TRA"/>
+<property productAssemblyUID="product_tibco_tra_platform"/>
+<property productAssemblyMinVersion="${minimum.tra.version}"/>
+<property showProgress="true"/>
+<property description="Get TRA install location"/>
+</wizardAction>
+<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+<property productAcronym="BW"/>
+<property minimumVersion="${minimum.bw.version}"/>
+<property vpdUID="BW"/>
+<property productAssemblyUID="product_tibco_bw_shared"/>
+<property productAssemblyMinVersion="${minimum.bw.version}"/>
+<property showProgress="true"/>
+<property description="Get install location for BW"/>
+</wizardAction>
+<postInstallAction description="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon Post Installation" logLevel="debug" 
+sequence="post-assembly-ref" target="post-install" taskFile="${bwplugin.home}/defcon/setup/post-install.xml">
+<postInstallActionProperty name="tibco.defcon.home.esc" value="${defcon.home.esc}"/>
+<postInstallActionProperty name="tibco.defcon.home" value="${defcon.home}"/>
+<postInstallActionProperty name="tibco.rv.home.esc" value="${TIBCO_RV_HOME_ESC}"/>
+<postInstallActionProperty name="tibco.tra.home.esc" value="${TIBCO_TRA_HOME_ESC}"/>
+<postInstallActionProperty name="tibco.tra.short.version" value="${TIBCO_TRA_APPEND_VERSION}"/>
+<postInstallActionProperty name="tibco.bw.home.esc" value="${TIBCO_BW_HOME_ESC}"/>
+<postInstallActionProperty name="tibco.bw.plugins.home" value="${bwplugin.home.esc}"/>
+</postInstallAction>
+<postInstallAction description="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon Pre-Uninstallation" logLevel="debug" 
+sequence="pre-uninstall-ref" target="pre-uninstall" taskFile="${bwplugin.home}/defcon/setup/post-install.xml">
+<postInstallActionProperty name="tibco.defcon.home.esc" value="${defcon.home.esc}"/>
+<postInstallActionProperty name="tibco.bw.home.esc" value="${TIBCO_BW_HOME_ESC}"/>
+</postInstallAction>
+</installerFeature>
+
+<installerFeature name="Documentation" version="5.0.0" installLocation="${bwplugin.home}">
+<assemblyList>
+<assembly uid="product_tibco_defcon_docs" version="5.0.0"/>
+</assemblyList>
+</installerFeature>
+
+
+
+</TIBCOInstallerFeatures>

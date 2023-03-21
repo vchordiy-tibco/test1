@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_common" type="common"> 
+	<include file="aliases_defcon.xml"/>
+	
+		<file src="${scriptsdir}/post-install.xml" dest="setup/post-install.xml" perm="755" plat="${ALL}"/>
+	</component>
+	
+	
+</components>
+	
+	

@@ -1,0 +1,22 @@
+<TIBCOInstallerFeatures>
+<productDef name="TIBCO Defcon 5.0.0 Hotfix 1" id="defcon" version="5.0.0.001" hotfix_number="001" 
+universalinstallerrelease="3.6.2" universalinstallerversion="L" compatDisplayName="TIBCO " 
+compatType="defcon" installDir="plugins/defcon/5.0" releaseType="hotfix" productType="hotfix" supportedPlatforms="platform-independent" includeDoc="true"/>
+
+<customVariables>
+<variable name="bwplugin.home" value="${tibco.home}${fsp}bw${fsp}plugins"/>
+<variable name="defcon.home" value="${tibco.home}${fsp}bw${fsp}plugins${fsp}defcon"/>
+<variable name="bwplugin.home.esc" value="${tibco.home.esc}/bw/plugins"/>
+<variable name="defcon.home.esc" value="${tibco.home.esc}/bw/plugins/defcon"/>
+<variable name="minimum.rv.version" value="8.3.1"/>
+<variable name="minimum.bw.version" value="5.9.0"/>
+<variable name="minimum.tra.version" value="5.11.0"/>
+</customVariables>
+
+
+<installerFeature installLocation="${bwplugin.home}" name="Runtime Hotfix 1" version="5.0.0">
+<assemblyList>
+<assembly uid="product_tibco_defcon_runtime" version="5.0.0"/>
+</assemblyList>
+</installerFeature>
+</TIBCOInstallerFeatures>

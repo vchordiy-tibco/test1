@@ -1,0 +1,7 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_webappdeployment" type="common">
+		<include file="aliases_TRA.xml" />
+		<file src="${WEBAPPDEPLOYMENT_PATH}/lib/TIBCOAppDeployment.jar" dest="lib/TIBCOAppDeployment.jar" perm="555" plat="${ALL}"/>
+	</component>
+</components>

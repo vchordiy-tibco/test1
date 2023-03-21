@@ -1,0 +1,14 @@
+<?xml  version="1.0"?>
+<aliases>
+    <alias name="bldsrcdir" value="env.bldsrcdir"/>
+	<alias name="ALL" value="win_x86_64,linux26gl23_x86_64,macosx_x86_64"/>
+	<alias name="scriptsdir" value="${bldsrcdir}/pkg_info/bom"/>
+	
+
+    <alias name="UNIX" value="linux26gl23/x86_64"/>
+    <alias name="WIN" value="win_x86,win_x86_64"/>
+	<alias name="MAC" value="macosx/x86_64"/>
+   
+
+	
+</aliases>

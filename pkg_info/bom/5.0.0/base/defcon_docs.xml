@@ -1,0 +1,6 @@
+<components>
+<component name="defcon_docs" type="common">
+<include file="aliases_defcon.xml"/>
+<dir src="${docssrcdir}/doc" dest=""  plat="${ALL}"/>
+</component>
+</components>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TIBCOInstallerFeatures>
+
+    <productDef productType="contributor" id="emsteaagent" name="EMS TEA Agent" supportedPlatforms="macosx/x86_64,linux/x86_64,win/x86_64,sol/sparc_64,sol/x86_64,aix/power_64,hpux/ia64" 
+        universalinstallerrelease="3.3.0" universalinstallerversion="V4"
+        productMMName="shared" productMMVersion="1.1.0" productMachineModel="false" version="1.1.0.000"/>
+
+    <customVariables>
+    	<localVariable name="ems.tea.agent.shortversion" value="1.1"/>   
+    	<localVariable name="ems.tea.agent.tra.filename" value="ems-agent"/>
+    	<localVariable name="ems.tea.agent.folder" value="ems"/>      
+        <localVariable name="ems.agent.home" value="${tibco.home.esc}/tea/agents/$L{ems.tea.agent.folder}/$L{ems.tea.agent.shortversion}"/>
+        <localVariable name="ems.shortcutName" value="EMS TEA Agent"/>
+		<localVariable name="ems.shortcutFolder" value="TIBCO/${tibco.environment.name}/$L{ems.shortcutName} $L{ems.tea.agent.shortversion}"/>
+    </customVariables>
+    
+    <installerFeature name="agent" installLocation="$L{ems.agent.home}" version="1.1.0" visible="false">
+        <assemblyList>
+			<assembly uid="product_tibco_ems_tea_agent" version="1.1.0"/>	
+			<assembly uid="product_tibco_ems_tea_agent_adjuncts" version="1.1.0"/>
+		</assemblyList>			
+		<dependency type="feature" uid="main_wrapper" version="2.4.4" description="Wrapper" plat="linux26gl23_x86_64,macosx_x86_64,sol_sparc_64,sol_x86_64,aix_power_64,hpux_ia64"/>					
+		<dependency type="feature" uid="main_wrapper-winvc10" version="2.4.4" description="wrapper" plat="win_x86_64"/>
+		<postInstallAction description="Post installation for EMS TEA Agent" sequence="post-assembly-ref" target="post-install-emsagent" taskFile="$L{ems.agent.home}/setup/post-install.xml">				
+			<postInstallActionProperty name="tea.short.version" value="${tea.shortVersion}"/>
+			<postInstallActionProperty name="ems.tea.agent.short.version" value="$L{ems.tea.agent.shortversion}"/>
+			<postInstallActionProperty name="ems.tea.agent.tra.file.name" value="$L{ems.tea.agent.tra.filename}"/>			
+			<postInstallActionProperty name="tra.file.location" value="$L{ems.agent.home}/bin/$L{ems.tea.agent.tra.filename}.tra"/>    
+			<postInstallActionProperty name="ems.agent.home.folder" value="$L{ems.agent.home}"/>
+			<postInstallActionProperty name="ems.tea.agent.folder.name" value="$L{ems.tea.agent.folder}"/>
+			<postInstallActionProperty name="tea.tibco.ems.home.esc" value="${TIBCO_EMS_HOME_ESC}"/>
+		</postInstallAction>	
+	</installerFeature>
+	
+	<installerFeature name="steps" installLocation="$L{ems.agent.home}" version="1.1.0" visible="false" plat="win_x86_64">		
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCreateWindowsShortcutWizardAction" sequence="post-install">
+			<property shortcutFolder="$L{ems.shortcutFolder}"/>
+			<property shortcutName="$L{ems.shortcutName}"/>
+			<property shortcutTarget="$L{ems.agent.home}/bin/ems-agent.exe" />
+			<property shortcutArgs=""/>
+			<property shortcutIcon=""/>
+			<property shortcutWorkingDirectory="$L{ems.agent.home}/bin" />
+		</wizardAction>
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCORemoveWindowsShortcutWizardAction" sequence="post-uninstall">
+			<property shortcutFolder="$L{ems.shortcutFolder}"/>
+			<property shortcutName="$L{ems.shortcutName}"/>
+		</wizardAction>				
+	</installerFeature>
+		
+	<jvm jdk="false" version="1.7.0" forceExternal="true" jvmbit="64"/>
+	<customSettings enableTibcoHomeConfigDirectory="true" multipleEnvironmentSupport="true"/>
+</TIBCOInstallerFeatures>

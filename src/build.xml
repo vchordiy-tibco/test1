@@ -1,0 +1,76 @@
+<project name="IS" basedir=".">
+	<property environment="env" />
+	<property name="TSI_ROOT" value="${env.TSI_ROOT}"/>
+	<property name="15compat_output" value="15compat_output"/>
+	<property name="jarfilename" value="defcon.jar"/>
+	<tstamp>
+		<format property="TODAY" pattern="MMMM-d-yyyy hh:mm aa" locale="en"/>
+	</tstamp>
+	<echo message="DATE: ${TODAY}" level="info"/>
+
+	<target name="-compile" depends="-check_compile" if="hassourcedir">
+		<echo message="JAVA_HOME: ${env.JAVA_HOME}" level="info"/>
+		<echo message="TSI_ROOT: ${TSI_ROOT}" level="info"/>
+		<echo message="destdir: ${compiledestdir}" level="info"/>
+		<echo message="srcdir: ${compilesrcdir}" level="info"/>
+		<echo message="classpath: ${modulelibs}" level="info"/>
+		<mkdir dir="${compiledestdir}"/>
+		<javac encoding="cp1252" classpath="${modulelibs}" srcdir="${compilesrcdir}" destdir="${compiledestdir}" excludes="${commonexcludes}" debug="on" deprecation="off" target="${jdkversion}" source="${jdkversion}"/>
+	</target>
+	<target name="-check_compile">
+		<echo message="Checking srcdir: ${compilesrcdir}" level="info"/>
+		<available file="${compilesrcdir}" type="dir" property="hassourcedir" value="true"/>
+	</target>
+	<target name="-create-manifest">
+		<manifest file="${manifestdestdir}/MANIFEST.MF">
+			<attribute name="Built-By" value="${user.name}"/>
+			<attribute name="Manifest-Version" value="${env.VERSION} ${TODAY}"/>
+			<attribute name="Manifest-Revision" value="${env.SVN_REVISION}"/>
+			<attribute name="Specification-Title" value="TIBCO Defcon"/>
+		</manifest>
+	</target>
+	<target name="-create-jar">
+		<echo message="jardestdir: ${jardestdir}" level="verbose"/>
+		<echo message="jarfile: ${jarfile}" level="verbose"/>
+		<echo message="jarbasedir: ${jarbasedir}" level="verbose"/>
+		<echo message="jarincludes: ${jarincludes}" level="verbose"/>
+		<echo message="jarmetainfdir: ${jarmetainfdir}" level="verbose"/>
+		<property name="jarmanifest" value="${jarmetainfdir}/MANIFEST.MF"/>
+		<mkdir dir="${jardestdir}"/>
+		<delete file="${jarfile}" quiet="yes"/>
+		<available property="metainf" file="${jarmetainfdir}" type="dir"/>
+		<jar jarfile="${jarfile}" basedir="${jarbasedir}" manifest="${jarmanifest}">
+		</jar>
+		<move file="${jarfile}" todir="${env.destdir}"/>
+	</target>
+	<target name="-replaceVars">
+		<replace file="com/tibco/defcon/Defcon.java" >
+			<replacefilter token="%VERSION%" value="${env.VERSION}"/>
+			<replacefilter token="%BUILD_NO%" value="${env.BUILD_NO}"/>
+			<replacefilter token="%DATE%" value="${TODAY}"/>
+		</replace>	
+	</target>
+	<target name="build">
+	<delete includeemptydirs="true" quiet="true">
+	<fileset dir="${15compat_output}"/>
+		</delete>
+		<antcall target="-replaceVars"/>
+		<antcall target="-compile">
+			<param name="compilesrcdir" value="com"/>
+			<param name="compiledestdir" value="${15compat_output}/src"/>
+			<param name="modulelibs" value="${classpath}"/>
+			<param name="jdkversion" value="1.5"/>
+		</antcall>
+		<antcall target="-create-manifest">
+			<param name="manifestdestdir" value="${15compat_output}"/>
+		</antcall>
+		<antcall target="-create-jar">
+			<param name="jarmetainfdir" value="${15compat_output}"/>
+			<param name="jardestdir" value="${15compat_output}"/>
+			<param name="jarfile" value="${15compat_output}/${jarfilename}"/>
+			<param name="jarbasedir" value="${15compat_output}/src"/>
+			<param name="jarincludes" value="**"/>			
+		</antcall>		
+		
+	</target>
+</project>

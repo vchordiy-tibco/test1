@@ -1,0 +1,230 @@
+<?xml version="1.0"?>
+<TIBCOInstallerFeatures>
+
+	<productDef 
+	name="TIBCO Defcon 6.0.0" 
+	id="defcon" 
+	version="6.0.0" 
+	releaseType="base" 
+	supportedPlatforms="win/x86,linux/x86,aix/power,linux/s390x" 
+	universalinstallerrelease="3.6.6" 
+	universalinstallerversion="V19" 
+	compatDisplayName="TIBCO Defcon" 
+	compatType="defcon" 
+	 />
+<packagingProperties createp2installer="true" supportedBWVersion="6.3" include_plat_dependent_p2_pkg="true" createcloudartifacts="epaas" bundle_analysis="true"/>
+
+	<customVariables>
+	
+		<localVariable name="defcon.minimum.bw.version" value="6.3.1"/>
+	    <!-- <localVariable name="defcon.minimum.bwce.version" value="2.2.1"/> -->
+		<localVariable name="defconcloud.minimum.bw.version" value="1.0.0"/>
+		<localVariable name="defcon.extension.palettes.runtime.home" value="${tibco.BW.home}/../palettes/defcon/6.0/runtime"/>
+		<localVariable name="defcon.extension.palettes.home" value="${tibco.BW.home}/../palettes/defcon/6.0"/>
+		<localVariable name="defcon.extension.palettes.design.home" value="${tibco.BW.home}/../palettes/defcon/6.0/design"/>
+		
+		<localVariable name="defcon.palette.full.name" value="TIBCO BW Defcon Palette"/>
+		<localVariable name="defcon.palette.short.name" value="defcon"/>
+		<localVariable name="defcon.palette.package.name" value="com.tibco.bw.palette"/>
+
+		<localVariable name="defcon.palette.ius" value="com.tibco.bw.palette.siebel.model.feature.feature.group,com.tibco.bw.palette.siebel.design.feature.feature.group,com.tibco.bw.sharedresource.siebelconnection.design.feature.feature.group"/>
+		<localVariable name="defcon.palette.install.tag" value="TIBCO BW Defcon Palette Features Installation"/>
+		<localVariable name="defcon.palette.uninstall.tag" value="TIBCO BW Defcon Palette Features Uninstallation"/>
+	
+	</customVariables>
+
+	
+<installProfile description="" name="Runtime" uid="runtime-profile"/>
+    <installProfile defaultSelected="true" description="Installs all components of the product" name="Typical" uid="typical"/>
+
+    <installerFeatureNode name="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon 6.0.0 Design" nodeID="design-node" parentNode="root" plat="win_x86_64,linux_x86_64,macos_x86_64"/>
+    <installerFeatureNode name="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon 6.0.0 Runtime" nodeID="runtime-node" parentNode="root"/>
+	
+	 <installerFeature dependencyOperator="OR" name="runtime" parentNode="runtime-node" profileUID="runtime-profile" version="6.0.0" visible="true">
+        <assemblyList>
+			<assembly overrideTargetDirectory="$L{defcon.extension.palettes.runtime.home}" uid="assembly_tibco_com_tibco_bw_palette_siebel_runtime_feature" version="7.1.0.001"/>
+			<assembly overrideTargetDirectory="$L{defcon.extension.palettes.runtime.home}" uid="assembly_tibco_com_tibco_bw_sharedresource_siebelconnection_runtime_feature" version="7.1.0.001"/>
+			<!-- <assembly overrideTargetDirectory="$L{defcon.extension.palettes.home}" uid="product_tibco_bwpluginsiebel_runtime" version="7.1.0.002"/> -->
+        </assemblyList>
+	
+	<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Runtime" type="feature" uid="Runtime_BW" version="6.3.1"/>
+		<!-- <dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Container Edition Runtime" type="feature" uid="Runtime_bwce" version="2.2.1"/> -->
+		<dependency description="TIBCO BusinessWorks Cloud Runtime" type="assembly" uid="product_tibco_bwplugin_cloud_runtime_dependency" version="1.0.0"/>
+		
+	
+	    <wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bw.version}"/>
+			<property vpdUID="BW_runtime"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_runtime"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BW Runtime"/>
+		</wizardAction>
+	
+	
+	  <!--  <wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bwce.version}"/>
+			<property vpdUID="bwce_runtime"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bwcf_runtime"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bwce.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BWCE Runtime"/>
+		</wizardAction>
+		
+	 -->
+		
+		<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defconcloud.minimum.bw.version}"/>
+			<property vpdUID=""/>
+			<property productAssemblyUID="product_tibco_bwplugin_cloud_runtime_dependency"/>
+			<property productAssemblyMinVersion="$L{defconcloud.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for Cloud Runtime"/>
+		</wizardAction>
+		
+		
+       <postInstallAction description="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon 6.0.0 runtime - creating extension palette link" logLevel="debug" sequence="post-assembly-ref" target="create-ext-palette-link" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>
+			<postInstallActionProperty name="ext.palette.full.name" value="$L{defcon.palette.full.name}"/>
+			<postInstallActionProperty name="ext.palette.short.name" value="$L{defcon.palette.short.name}"/>
+			<postInstallActionProperty name="ext.palette.package.name" value="$L{defcon.palette.package.name}"/>
+			<postInstallActionProperty name="ext.palette.location" value="$L{defcon.extension.palettes.home}"/>
+		</postInstallAction>
+
+		<postInstallAction description="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon 6.0.0 runtime - deleting extension palette link" logLevel="debug" sequence="pre-uninstall-ref" target="delete-ext-palette-link" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>
+			<postInstallActionProperty name="ext.palette.full.name" value="$L{defcon.palette.full.name}"/>
+			<postInstallActionProperty name="ext.palette.short.name" value="$L{defcon.palette.short.name}"/>
+			<postInstallActionProperty name="ext.palette.package.name" value="$L{defcon.palette.package.name}"/>
+			<postInstallActionProperty name="ext.palette.location" value="$L{defcon.extension.palettes.home}"/>
+		</postInstallAction>
+		
+		<postInstallAction description="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon 6.0.0 runtime - deleting previous extension palette link" logLevel="debug" sequence="pre-install-ref" target="delete-ext-palette-link" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<condition class="com.tibco.installer.wizard.condition.TIBCOFileExistsWizardCondition">
+				<property mustBeMet="true"/>
+				<property filename="${tibco.BW.home.esc}/ext/palettes/com.tibco.bw.palette.defcon.link"/>
+			</condition>
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>
+			<postInstallActionProperty name="ext.palette.full.name" value="$L{defcon.palette.full.name}"/>
+			<postInstallActionProperty name="ext.palette.short.name" value="$L{defcon.palette.short.name}"/>
+			<postInstallActionProperty name="ext.palette.package.name" value="$L{defcon.palette.package.name}"/>
+			<postInstallActionProperty name="ext.palette.location" value="$L{defcon.extension.palettes.home}"/>
+		</postInstallAction>
+		
+	 </installerFeature>
+	
+	
+<installerFeature name="design" visible="true" version="6.0.0" parentNode="design-node" profileUID="typical" dependencyOperator="OR" plat="win_x86_64,linux_x86_64,macos_x86_64">
+
+		<assemblyList>
+			<assembly uid="assembly_tibco_com_tibco_bw_palette_siebel_design_feature" overrideTargetDirectory="$L{defcon.extension.palettes.design.home}" version="7.1.0"/>
+			<assembly uid="assembly_tibco_com_tibco_bw_sharedresource_siebelconnection_design_feature" overrideTargetDirectory="$L{defcon.extension.palettes.design.home}" version="7.1.0"/>	
+		</assemblyList>
+		<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Design" type="feature" uid="Design_BW" version="6.3.1"/>
+<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Design (6.3.1.0) or TIBCO BusinessWorks Cloud Runtime" type="assembly" uid="product_tibco_bwplugin_cloud_design_dependency" version="1.0.0"/>
+		
+		
+		<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOSetFeatureStateWizardAction">
+			<property featureUID="runtime_defcon"/>
+			<property isEnabled="true"/>
+			<property isVisible="true"/>
+			<property isSelected="true"/>
+		</wizardAction>
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOSetFeatureStateWizardAction" sequence="post-selection">
+			<property featureUID="required_defcon"/>
+			<property isEnabled="true"/>
+			<property isVisible="false"/>
+			<property isSelected="true"/>
+		</wizardAction>
+		
+	<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bw.version}"/>
+			<property vpdUID="BW_design"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_design"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BW Design"/>
+		</wizardAction>
+		
+	<!--	<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bwce.version}"/>
+			<property vpdUID="bwce_design"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bwcf_design"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bwce.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BWCE Design"/>
+		</wizardAction>
+		-->
+		
+		<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defconcloud.minimum.bw.version}"/>
+			<property vpdUID=""/>
+			<property productAssemblyUID="product_tibco_bwplugin_cloud_design_dependency"/>
+			<property productAssemblyMinVersion="$L{defconcloud.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for Cloud Design"/>
+		</wizardAction>
+		
+		
+		<postInstallAction logLevel="debug" sequence="post-assembly-ref" target="install-ext-palette-design" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>
+			<postInstallActionProperty name="ext.palette.short.name" value="$L{defcon.palette.short.name}"/>
+			<postInstallActionProperty name="ext.palette.package.name" value="$L{defcon.palette.package.name}"/>
+			<postInstallActionProperty name="ext.palette.location" value="$L{defcon.extension.palettes.home}"/>
+			<postInstallActionProperty name="ext.palette.install.ius" value="$L{defcon.palette.ius}"/>
+			<postInstallActionProperty name="ext.palette.install.tag" value="$L{defcon.palette.install.tag}"/>
+		</postInstallAction>
+
+		<postInstallAction logLevel="debug" sequence="post-assembly-ref" target="setup-bwthor-launch" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>
+		</postInstallAction>
+
+		<postInstallAction logLevel="debug" sequence="pre-assembly-uninstall-ref" target="uninstall-ext-palette-design" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>
+			<postInstallActionProperty name="ext.palette.short.name" value="$L{defcon.palette.short.name}"/>
+			<postInstallActionProperty name="ext.palette.package.name" value="$L{defcon.palette.package.name}"/>
+			<postInstallActionProperty name="ext.palette.location" value="$L{defcon.extension.palettes.home}"/>
+			<postInstallActionProperty name="ext.palette.uninstall.ius" value="$L{defcon.palette.ius}"/>
+			<postInstallActionProperty name="ext.palette.uninstall.tag" value="$L{defcon.palette.uninstall.tag}"/>
+		</postInstallAction>
+
+		<postInstallAction logLevel="debug" sequence="post-uninstall-ref" target="setup-bwthor-launch" taskFile="${tibco.BW.home}/scripts/build.xml">
+			<postInstallActionProperty name="bw.home" value="${tibco.BW.home}"/>
+			<postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}"/>           
+		</postInstallAction>
+		
+			
+  </installerFeature>
+	
+	
+		<installerFeature name="required" visible="false" version="6.0.0">
+		<install location="$L{defcon.extension.palettes.design.home}">
+			<condition class="com.tibco.installer.wizard.condition.TIBCOFeatureSelectedWizardCondition">
+				<property mustBeMet="true"/>
+				<property featureID="design_defcon"/>
+			</condition>
+		</install>
+		
+	<assemblyList>
+		
+			<assembly uid="assembly_tibco_com_tibco_bw_palette_siebel_model_feature" overrideTargetDirectory="$L{defcon.extension.palettes.runtime.home}" version="7.1.0" />
+	
+	</assemblyList>
+	
+		</installerFeature>
+	
+	
+	
+</TIBCOInstallerFeatures>

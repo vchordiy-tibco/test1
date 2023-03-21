@@ -1,0 +1,382 @@
+================================================================================
+Product Name: TIBCO ActiveMatrix BusinessWorks(TM)
+Release Version: 5.10.0_HF-015
+Release Date: August 2014
+
+================================================================================
+Legal Notice
+
+This Hotfix is provided pursuant to the terms and conditions of the
+written maintenance and support agreement between you (or your company)
+and TIBCO and use of the Hotfix is controlled by the terms of such
+written maintenance and support agreement.
+
+================================================================================
+Introduction
+
+Hotfixes are cumulative. This hotfix includes all previous generally available 
+hotfixes for TIBCO ActiveMatrix BusinessWorks 5.10.0.
+
+================================================================================
+Installation 
+
+1. Shut down all running TIBCO applications.
+
+2. Extract the hotfix archive file to a temporary directory. 
+
+3. Copy the TIBCO Universal Installer from <TIBCO_HOME>/tools/universal_installer, 
+   to the temporary directory. 
+
+4. Navigate to the temporary directory.   
+
+5. Run the TIBCO Universal Installer, selecting an existing <TIBCO_HOME>.
+
+================================================================================
+Uninstallation
+
+To remove a hotfix, follow the instructions provided in 
+{TIBCO_HOME}\_uninstall\README_UNINSTALL.txt
+ 
+For more details contact TIBCO Support.
+
+To reinstall a previous hotfix version, follow the instructions published in 
+the hotfix readme file that is part of the hotfix package.
+ 
+================================================================================
+Affected Files for 5.10.0_HF-015
+
+The following files are installed by this hotfix. Note that some
+files are platform-specific and are installed only on that platform.
+
+All Platforms:
+
+  {TIBCO_HOME}\release_notes directory:
+   - TIB_BW_5.10.0_HF-015_readme.txt
+
+  {TIBCO_HOME}\bw\5.10\hotfix\lib directory:
+  - engine.jar
+  - plugins.jar
+  - tibsoap.jar
+  - tibcryptx_wss.jar
+  - TIBCOwss4j.jar
+  - log4j.properties 
+  - log4j.xml 
+  - serviceBindings.jar
+  - mapper.jar
+  - xdata.jar
+  - com.tibco.bw.binding.amx.common
+  - com.tibco.bw.binding.amx.common.ui
+  - com.tibco.bw.binding.amx.shared
+  - com.tibco.bw.binding.amx.runtime
+
+================================================================================
+Closed Issues in 5.10.0_HF-015 (This Release)
+
+BW-16443
+The schema used on a shared variable resource was referenced automatically in 
+the Shared Archive while creating the Enterprise Archive Designer on Windows.
+It did not reference the shared variable resource automatically while using 
+Linux.
+
+BW-6331
+While transferring text files (in ASCII mode) with "FTP Get" activity from windows 
+server to unix server, control characters were observed along with the line 
+feed characters.
+
+================================================================================
+Closed Issues in 5.10.0_HF-014
+
+BW-16413
+The JMS Receiver and the JMS Sender that used the same connection resource got 
+into a dead lock while reconnecting to the EMS Server. 
+
+BW-16405
+The concurrency level in TIBCO Hawk Microagent (HMA) for instrumentation was 
+increased.
+
+================================================================================
+Closed Issues in 5.10.0_HF-013
+
+BW-16331
+Customers could not stop applications deployed and started on TIBCO 
+Administrator containing the "Onstartup" and "Wait for..." activities, from 
+Administrator. The applications went into the shutting down state but did not 
+stop.
+
+BW-16181
+ActiveMatrix BusinessWorks left connections open when it used transactions with
+DB2 on IBM Z/OS. When stored procedures were run, it returned an ABEND code.
+Instead of rolling back, BusinessWorks tired to execute a test statement and 
+tried to close the connection.
+
+To clear the bad connections for JDBC and JTA transactions; set property 
+bw.plugin.jdbc.clearBadConnectionForTransactions to true. Default value is false.
+
+To stop the JDBC activity in a transaction from retrying to execute the query 
+in case of failure;set property propert bw.plugin.jdbc.disableRetryInTransaction 
+to true. Default value is false.
+
+BW-15271
+Under certain circumstances, TIBCO ActiveMatrix BusinessWorks received the 
+exception "weblogic.jms.common.LostServerException" when the JMS Sender 
+activity was used with the Weblogic server and the server went down. 
+When the Weblogic server came up, BusinessWorks could not reconnect with the 
+server.
+
+================================================================================
+Closed Issues in 5.10.0_HF-012
+
+BW-16283
+JMS Queue Receiver threw a "NullPointerException", when paging was on and the 
+sequencing key was used. 
+
+================================================================================
+Closed Issues in 5.10.0_HF-011
+
+BW-14501
+The TIBCO Hawk Get Activities method returned invalid value for 
+"MostRecentElapsedTime".
+
+BW-15897
+When other or customer specified mimeHeaders were used in the mimePart for the
+Send HTTP Request and Send HTTP Response activity, the Content-Length displayed 
+incorrect value.
+
+BW-16070
+The Get JMS Queue Message activity timed out inside a JMS Local transaction 
+group, and threw a "JMSPluginException" instead of "ActivityTimedoutException".
+
+BW-16179
+The Send HTTP Request activity timed out while sending requests from the 
+BusinessWorks service.
+
+BW-16186
+The SOAP Request Reply activity failed with Interrupted Exception, when 
+the reply message was received through SOAP over JMS.
+
+================================================================================
+Closed Issues in 5.10.0_HF-010
+
+BW-15730
+The SOAP Request Reply activity is suspended when there were nested 
+SOAP-ENC:arrayType elements in the WSDL referred schema.
+To rename the SOAP array items to 'item', enable the following property:
+bw.plugin.soap.arrayItemName.useDefault 
+The default value of this property is "false".
+
+BW-15861
+The SOAP Request Reply activity failed to send the request messages to a simple
+web service over WebLogic JMS Server, if the "Validate Security Context" 
+check box was enabled.
+
+BW-15886
+The value of "content-length" generated in the HTTP POST request was not correct, 
+if fileName was used in the mimePart.
+
+BW-15930
+BusinessWorks engine did not stop when "Stop" was issued in Windows 2008 R2, if 
+default values for Graceful Shut down were used.
+
+BW-15935
+Identity file path was truncated in Windows 2008 R2.
+
+================================================================================
+Closed Issues in 5.10.0_HF-009
+
+BW-15565
+Engine.Log.MaxSize did not work in TIBCO ActiveMatrix BusinessWorks 5.10.0. 
+Custom changes done to the existing log4j.xml and log4j.properties files should 
+be copied to the respective new files located under hotfix/lib.
+
+BW-15682
+Fixed an issue where the common logging and custom logging were not written to 
+the application's log file. The log, however, was written correctly in the TIBCO 
+Designer console.
+
+BW-15765
+HTTP Request Reply activity sends the HTTP request with the default value of 
+accept-encoding: gzip. However, the reply sent by the server with gzip content  
+did not decompress the content correctly according to the header.
+
+BW-15775
+TIBCO ActiveMatrix BusinessWorks 5.10.0 onwards, an extra CRLF was added under
+the HTTP headers.
+
+BW-15783
+For Soap Request Reply activity, the 'SOAP-ENV:Body' and 'wsu:Timestamp' elements
+could not be signed.
+
+BW-15811
+If the project contained a large number of SOAP Request Reply activities in 
+the Web Service operation processes and the BusinessWorks engine was started 
+in IBM JVM, such as AIX, some exceptions occurred occasionally.
+
+BW-15878
+TCP Open Connection did not return unique connection handles.
+
+BW-15879
+Fixed an issue, where TCP Client did not work properly in FT mode on the 
+secondary engine. 
+This fix will not work, if the property "bw.plugin.tcp.closeSocketOnShutdown" is 
+set to 'false'.
+
+BW-15880
+During the TCP Server shut down, one message sent by the TCP server to the TCP 
+client was misplaced. This occurred when the message was written by the TCP 
+client during the TCP server shut down.
+To enable TIBCO ActiveMatrix BusinessWorks for not closing the server side socket 
+during shut down, set the property "bw.plugin.tcp.closeSocketOnShutdown" to "false". 
+To revert to the default behaviour, set this property to "true".
+
+BW-15881
+Fix for BW-15880 broke the Close connection code at the client end.
+
+================================================================================
+Closed Issues in 5.10.0_HF-008
+
+BW-15658
+From TIBCO AcriveMatrix BusinessWorks 5.10.0 onwards, the Send HTTP Request 
+activity sent an empty mime part with content-type set to unknown/unknown, when 
+postData field was not mapped while sending the multipart/form-data.
+
+BW-15766
+With '&' in the paramter value of Send HTTP Request activity, the TIBCO 
+ActiveMatrix Businessworks failed with an "HTTP Request Response 5XX status code 
+error".
+
+BW-15767
+HTTP MIME Attachment header Content-transfer-encoding when sending an HTTP Request,
+did not function as per specifications.
+
+BW-15774
+The value of "content-length" generated in the HTTP POST request was incorrect.
+
+================================================================================
+Closed Issues in 5.10.0_HF-007
+
+BW-15651
+The releaseConnection method in Java Connection Accessor did not close invalid 
+connections. 
+
+BW-15656
+The Service agent used a wrong file name while writing an attachment to a file, 
+when there were concurrent requests.
+
+BW-15659
+Unconfirmed messages were not re-delivered to a JMS Receiver starter, when 
+Explicit Client Ack mode was used and flowlimit was set as 1.
+
+BW-15677
+Get JMS Queue Message, JMS Queue Requestor, and JMS Topic Requestor activites 
+failed with validation error, when configured to receive object type message 
+at runtime.
+
+================================================================================
+Closed Issues in 5.10.0_HF-006
+
+BW-15255
+The JDBC connections now give a warning message instead of a debug message,
+in case of being busy with no connection availability or getting retired.  
+ 
+BW-15323
+In TIBCO ActiveMatrix BusinessWorks 5.9.3, an issue was observed when the Partner 
+Link Configuration used the WSDL which uses soap 1.2 namespace. When using the 
+"+" to add a WSDL operation, the cursor changed into the busy/wait icon without 
+moving and threw a NullPointerException when saved.
+ 
+BW-15566
+Creating Partner Link Configuration with ActiveMatrix and SOAP partner links in 
+sequence failed due to validation error.
+
+================================================================================
+Closed Issues in 5.10.0_HF-005
+
+BW-15499
+OnError activity did not return JMS headers.
+
+BW-15596
+TIBCO ActiveMatrix BusinessWorks Receiver in the 5.10.0 release did not work 
+and failed with validation errors, when a sender sent object messages with 
+dynamic properties. 
+
+================================================================================
+Closed Issues in 5.10.0_HF-004
+
+BW-9307
+The HTTP Request Reply activity sent HTTP request with gzip compressed binary 
+data by default.
+
+BW-14879
+An expired certificate in the trusted store affected the other valid certificates 
+in the trusted store and threw "WS Security Error : 121901".
+
+BW-15354
+The Send Mail activity sent a corrupt pdf file when it was sent as a Binary 
+Content. The process however, sent a correct file, when the file type was text 
+instead of pdf.
+
+BW-15364
+Engine.Log.MaxSize did not work in TIBCO ActiveMatrix BusinessWorks 5.10.0.
+
+BW-15434
+TIBCO ActiveMatrix BusinessWorks 5.7.2 onwards, all Non-XA JBOSS Queue, Topic 
+Connection factory, and the XA-enabled JBOSS Topic Connection Factory failed 
+with ClassCast Exception, when trying to create a new connection.
+
+BW-15478
+Performance improvement in the Invoke Partner scenario.
+
+BW-15476
+Performance improvement in the SOAP Service scenario. 
+
+================================================================================
+Closed Issues in 5.10.0_HF-003
+
+BW-15346 
+The ActiveMatrix BusinessWorks engine threw an exception when TIBCO ActiveMatrix 
+BusinessWorks ActiveAspects Plug-in 1.2.0 was installed, if one of the  
+processes contained a CatchAll activity.
+
+BW-15347
+All the incoming JMS/HTTP headers/properties to be generated as part of the 
+output message of the receivers (for example, JMS receivers and HTTP receivers) 
+is now supported.
+
+BW-15376
+Generating all the incoming HTTP headers as part of the output message of the 
+HTTP receivers is now supported. 
+
+================================================================================
+Closed Issues in 5.10.0_HF-002
+
+BW-15301 
+It was required to add the design-time fixes for the TIBCO ActiveMatrix  
+BusinessWorks Service Engine 5.10.0 release in TIBCO ActiveMatrix BusinessWorks.
+  
+================================================================================
+Closed Issues in 5.10.0_HF-001
+
+BW-14835 
+Engines with RVCM transport activities and Service Agents in one EAR (PAR) 
+deployed in the fault tolerance (FT) mode did not start and threw an exception. 
+
+================================================================================
+TIBCO Product Support
+
+ - For an overview of TIBCO Support Services, and information about
+    getting started with TIBCO Product Support, visit this site:
+    http://www.tibco.com/services/support/default.jsp
+
+ - If you already have a valid maintenance or support contract,
+    visit the TIBCO Product Support site: https://support.tibco.com
+    Entry to this site requires a username and password. If you do
+    not have a username, you can request for one.
+
+ - Check the TIBCO Product Support site "Late Breaking News" page
+    for product information that was not available at release time.
+
+================================================================================
+Copyright
+
+Copyright (C) 2001-2014 TIBCO Software Inc. ALL RIGHTS RESERVED.
+TIBCO Software Inc. Confidential Information    

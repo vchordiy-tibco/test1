@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><TIBCOInstallerFeatures>
+    <productDef id="wrapper" name="TIBCO Wrapper" productType="contributor" version="2.4.5.001"/>
+    <installerFeature name="main" version="2.4.5.001" visible="true">
+        <assemblyList>
+            <assembly plat="win_x86,linux_x86,sol_sparc,sol_x86,hpux_hppa,aix_power,win_x86_64,linux_x86_64,hpux_ia64,hpux_ia64_32,sol_sparc_64,sol_x86_64,hpux_hppa_64,aix_power_64,linux_s390x,macos_x86,macos_x86_64,win_x86_vc10,win_x86_64_vc10" uid="product_tibco_wrapper" version="2.4.5.001"/>
+        </assemblyList>
+   </installerFeature>
+</TIBCOInstallerFeatures>

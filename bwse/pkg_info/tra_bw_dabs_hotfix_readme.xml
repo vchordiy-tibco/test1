@@ -1,0 +1,10 @@
+<?xml version="1.0" ?> 
+<components>
+	<component name="tra_bw_dabs_hotfix_readme" type="common">
+		<file src="/local/relbuild/bwse_5100_hf7/BW_SE-5.10.0-dev/pkg_info/bom/5.10.0/hf9/featureconfigs/TIB_BW_5.10.0_HF-015_readme.txt" dest="TIB_BW_5.10.0_HF-015_readme.txt" perm="644" plat="${ALL}"/>	
+		<file src="/local/relbuild/bwse_5100_hf7/BW_SE-5.10.0-dev/pkg_info/bom/5.10.0/hf9/featureconfigs/TIB_TRA_5.7.4_HF-002_readme.txt" dest="TIB_TRA_5.7.4_HF-002_readme.txt" perm="644" plat="${ALL}"/>	
+		
+	</component>
+</components>
+
+

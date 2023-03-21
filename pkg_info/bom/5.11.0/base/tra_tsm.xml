@@ -1,0 +1,8 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_tsm" type="">
+		<include file="aliases_TRA.xml" />
+		<file src="${exportdir}/common/TIBCOtsm.jar" dest="lib/TIBCOtsm.jar" perm="555" plat="${ALL}"/>
+		<file src="${THIRDPARTY_PATH}/killproc.exe" dest="bin/killproc.exe" perm="555" plat="${WIN}"/>
+	</component>
+</components>

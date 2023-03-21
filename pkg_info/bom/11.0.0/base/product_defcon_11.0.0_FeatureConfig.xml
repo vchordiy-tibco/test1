@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<TIBCOInstallerFeatures>
+
+	<productDef name="TIBCO Defcon 11.0.0" id="defcon" version="11.0.0" releaseType="base" supportedPlatforms="win/x86,linux/x86,aix/power,linux/s390x" universalinstallerrelease="3.6.6" universalinstallerversion="L" compatDisplayName="TIBCO Defcon" compatType="defcon" installDir="defcon/11.0" />
+
+
+	<customVariables>
+		<variable name="defcon.name" value="TIBCO Defcon"/>
+		<variable name="defcon.home" value="${tibco.home}${fsp}defcon${fsp}11.0"/>
+		<variable name="defcon.home.esc" value="${tibco.home.esc}/defcon/11.0"/>
+		<variable name="defcon.version" value="11.0.0" />
+		<variable name="defcon.short.version" value="11.0"/>
+	</customVariables>
+
+	<installerFeature name="Runtime" version="11.0.0" installLocation="${defcon.home}">
+		<assemblyList>
+		<assembly uid="product_tibco_bwpluginhl7_test" version="11.0.0" ></assembly>
+			<assembly uid="product_tibco_defcon_runtime" version="11.0.0"></assembly>			
+		</assemblyList>
+	</installerFeature>
+
+	<installerFeature name="Design" version="11.0.0" installLocation="${defcon.home}">
+		<assemblyList>
+			<assembly uid="product_tibco_defcon_design" version="11.0.0"></assembly>
+		</assemblyList>
+		
+		
+		
+	<wizardAction sequence="post-install" class="com.tibco.installer.wizard.action.TIBCODoStuffWithFilesWizardAction">
+	<property filename="defcon_11.0.0.zip"/>
+	<property sourceFile="${defcon.home.esc}/bin/defcon_11.0.0.zip"/>
+	<property targetFile="${defcon.home}"/>
+	<property fileAction="copy"/>
+	<property targetInstallFeature="Design"/>
+	<property assemblyUID="product_tibco_defcon_11.0.0"/>
+	<property assemblyVersion="11.0.0.001"/>
+	<property installLocation="${defcon.home}"/>
+	<property overwriteExistingFile="true"/>
+	</wizardAction>
+	
+	</installerFeature>
+</TIBCOInstallerFeatures>

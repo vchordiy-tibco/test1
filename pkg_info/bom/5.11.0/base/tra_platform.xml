@@ -1,0 +1,85 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_platform" type="">
+		<include file="aliases_TRA.xml" />
+
+		<file src="${bldsrcdir}/bin/ae2xsd.sh" dest="bin/ae2xsd.sh_template" perm="555" plat="${UNIX}"/>
+		<file src="${bldsrcdir}/bin/ae2xsd.bat" dest="bin/ae2xsd.bat_template" perm="555" plat="${WIN}"/>
+
+		<file src="${ADMINCLIENT_PATH}/doc/sample/auth/bin/CompileSample.bat" dest="sample/auth/bin/CompileSample.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${ADMINCLIENT_PATH}/doc/sample/auth/bin/RunSample.bat" dest="sample/auth/bin/RunSample.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${ADMINCLIENT_PATH}/doc/sample/auth/bin/CompileSample.sh" dest="sample/auth/bin/CompileSample.sh_template" perm="555" plat="${UNIX}"/>
+		<file src="${ADMINCLIENT_PATH}/doc/sample/auth/bin/RunSample.sh" dest="sample/auth/bin/RunSample.sh_template" perm="555" plat="${UNIX}"/>
+
+		<file src="${XML_PARSER_PATH}/lib/xmlparsers.jar" dest="lib/xmlparsers.jar" perm="755" plat="${ALL}"/>
+
+		<!-- does not include sol10/x86 and zLinux -->
+		<file src="${SDK55_PATH}/${PORT}/rel/config/g11n/tibicudata32.dat" dest="config/g11n/tibicudata32.dat" perm="644" plat="${AIX},${SOLARIS_SPARC_64},${HPUX},${WIN},${LINUX}"/>
+		<file src="${SDK55_PATH}/${PORT}/rel/bin/aelisten" dest="bin/aelisten" perm="555" plat="${AIX},${SOLARIS_SPARC_64},${HPUX},${LINUX_32},linux26gl23_x86_64"/>
+		<file src="${SDK55_PATH}/${PORT}/rel/bin/aesend" dest="bin/aesend" perm="555" plat="${AIX},${SOLARIS_SPARC_64},${HPUX},${LINUX_32},linux26gl23_x86_64"/>
+
+		<file src="${DOMUTIL_PATH}/bin/MoveMachine.tra" dest="bin/MoveMachine.tra_template" perm="644" plat="${UNIX}"/>
+
+		<file src="${WRAPPER_PATH}/${PORT}/lib/libwrap.a" dest="lib/libwrap.a" perm="555" plat="${UNIX}"/>
+		<file src="${WRAPPER_PATH}/${PORT}/lib/libwrap64.a" dest="lib/libwrap64.a" perm="555" plat="${UNIX_64}"/>
+
+		<file src="${WRAPPER_PATH}/${PORT}/include/Logging.h" dest="include/wrapper/Logging.h" perm="444" plat="${ALL}"/>
+		<file src="${WRAPPER_PATH}/${PORT}/include/Types.h" dest="include/wrapper/Types.h" perm="444" plat="${ALL}"/>
+		<file src="${WRAPPER_PATH}/${PORT}/include/WrapperMethods.h" dest="include/wrapper/WrapperMethods.h" perm="444" plat="${ALL}"/>
+		<file src="${WRAPPER_PATH}/${PORT}/include/ExternalTypes.h" dest="include/wrapper/ExternalTypes.h" perm="444" plat="${ALL}"/>
+
+		<file src="${SDK50_PATH}/${PORT}/rel/bin/tibicudata.dat" dest="config/g11n/tibicudata.dat" perm="644" plat="${AIX},${SOLARIS_SPARC_64},${HPUX},${WIN},${LINUX}"/>
+
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick53.so" dest="lib/libmaverick53.so" perm="555" plat="${SOLARIS_SPARC_64}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww532.so" dest="lib/librepowww532.so" perm="555" plat="${SOLARIS_SPARC_64}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick5364.so" dest="lib/libmaverick5364.so" perm="555" plat="${SOLARIS_SPARC_64}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww53264.so" dest="lib/librepowww53264.so" perm="555" plat="${SOLARIS_SPARC_64}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick50.so" dest="lib/libmaverick50.so" perm="555" plat="${SOLARIS_SPARC_64}"/>
+
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick53.so" dest="lib/libmaverick53.so" perm="555" plat="${LINUX_32},${LINUX_64},linux26gl23_x86_64"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww532.so" dest="lib/librepowww532.so" perm="555" plat="${LINUX_32},${LINUX_64},linux26gl23_x86_64"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick5364.so" dest="lib/libmaverick5364.so" perm="555" plat="${LINUX_32},${LINUX_64},linux26gl23_x86_64"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick50.so" dest="lib/libmaverick50.so" perm="555" plat="${LINUX_32},${LINUX_64},linux26gl23_x86_64"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww53264.so" dest="lib/librepowww53264.so" perm="555" plat="${LINUX_32},${LINUX_64},linux26gl23_x86_64"/>
+
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick53.so" dest="lib/libmaverick53.so" perm="555" plat="${AIX}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww532.so" dest="lib/librepowww532.so" perm="555" plat="${AIX}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick50.so" dest="lib/libmaverick50.so" perm="555" plat="${AIX}"/>
+
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick53.so" dest="lib/libmaverick53.so" perm="555" plat="${HPUX_IA64_32}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick5364.so" dest="lib/libmaverick5364.so" perm="555" plat="${HPUX_IA64_32}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww532.so" dest="lib/librepowww532.so" perm="555" plat="${HPUX_IA64_32}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww53264.so" dest="lib/librepowww53264.so" perm="555" plat="${HPUX_IA64_32}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick50.so" dest="lib/libmaverick50.so" perm="555" plat="${HPUX_IA64_32}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick5064.so" dest="lib/libmaverick5064.so" perm="555" plat="${HPUX_IA64_32}"/>
+
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick53.so" dest="lib/libmaverick53.so" perm="555" plat="${HPUX_IA64}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/libmaverick5364.so" dest="lib/libmaverick5364.so" perm="555" plat="${HPUX_IA64}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww532.so" dest="lib/librepowww532.so" perm="555" plat="${HPUX_IA64}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/lib/librepowww53264.so" dest="lib/librepowww53264.so" perm="555" plat="${HPUX_IA64}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick50.so" dest="lib/libmaverick50.so" perm="555" plat="${HPUX_IA64}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/lib/libmaverick5064.so" dest="lib/libmaverick5064.so" perm="555" plat="${HPUX_IA64}"/>
+
+		<file src="${DOMUTIL_PATH}/bin/MoveMachine.tra" dest="bin/MoveMachine.tra_template" perm="644" plat="${WIN}"/>
+		<file src="${WRAPPER_PATH}/${PORT}/vc8/lib/libwrap.lib" dest="lib/libwrap.lib" perm="555" plat="${WIN_64}"/>
+
+		<file src="${SDK_PATH}/${PORT}/rel/bin/aelisten.exe" dest="bin/aelisten.exe" perm="555" plat="${WIN}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/bin/aesend.exe" dest="bin/aesend.exe" perm="555" plat="${WIN}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/bin/maverick53.dll" dest="bin/maverick53.dll" perm="555" plat="${WIN}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/bin/maverick53d.dll" dest="bin/maverick53d.dll" perm="555" plat="${WIN}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/bin/librepowww532.dll" dest="bin/librepowww532.dll" perm="555" plat="${WIN}"/>
+		<file src="${SDK_PATH}/${PORT}/rel/bin/librepowww532d.dll" dest="bin/librepowww532d.dll" perm="555" plat="${WIN}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/bin/maverick50.dll" dest="bin/maverick50.dll" perm="555" plat="${WIN}"/>
+		<file src="${SDK50_PATH}/${PORT}/rel/bin/maverick50d.dll" dest="bin/maverick50d.dll" perm="555" plat="${WIN}"/>
+
+		<file src="${REPO_PATH}/bin/win32/RepoCreateInstance.bat" dest="bin/RepoCreateInstance.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoDelete.bat" dest="bin/RepoDelete.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoExport.bat" dest="bin/RepoExport.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoImport.bat" dest="bin/RepoImport.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoListInstances.bat" dest="bin/RepoListInstances.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoRename.bat" dest="bin/RepoRename.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoDiff.bat" dest="bin/RepoDiff.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoPing.bat" dest="bin/RepoPing.bat_template" perm="555" plat="${WIN}"/>
+		<file src="${REPO_PATH}/bin/win32/RepoConvert.bat" dest="bin/RepoConvert.bat_template" perm="555" plat="${WIN}"/>
+	</component>
+</components>

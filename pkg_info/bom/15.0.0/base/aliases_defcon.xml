@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<aliases>
+
+<alias name="tibcodir" value="/tsi/root/tibco"/>
+<alias name="ALL" value="win_x86_64,linux26gl23_x86_64,macosx_x86_64"/>
+
+<alias name="bldsrcdir" value="env.bldsrcdir"/>
+<alias name="scriptsdir" value="${bldsrcdir}/pkg_info/bom/15.0.0/script/setup"/>
+<alias name="exportdir" value="${bldsrcdir}/build/dist"/>
+
+<alias name="LINUX" value="linux26gl23/x86_64"/>
+<alias name="WIN" value="win_x86,win_x86_64"/>
+<alias name="MAC" value="macosx/x86_64"/>
+
+
+</aliases>

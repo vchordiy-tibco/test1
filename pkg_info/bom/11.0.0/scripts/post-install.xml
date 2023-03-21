@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="defcon-post-install" default="post-install">
+
+<fail unless="tibco.home.esc" message="tibco.home.esc property not set."/>
+<fail unless="tibco.defcon.home.esc" message="tibco.defcon.home.esc property not set."/>
+
+<target name="init">
+		<echo message="Begin Post Installation of TIBCO Defcon"/>
+		<echo message="tibco.home.esc=${tibco.home.esc}"/>
+		<echo message="tibco.defcon.home.esc=${tibco.defcon.home.esc}"/>
+	</target>
+
+	
+	
+
+
+</project>

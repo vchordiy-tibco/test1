@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<TIBCOInstallerFeatures>
+
+	<productDef 
+	name="TIBCO Defcon 16.0.0" 
+	id="defcon" 
+	version="16.0.0" 
+	releaseType="base" 
+	supportedPlatforms="win/x86,linux/x86,aix/power,linux/s390x" 
+	universalinstallerrelease="3.6.6" 
+	universalinstallerversion="L" 
+	compatDisplayName="TIBCO Defcon" 
+	compatType="defcon" 
+	 />
+<packagingProperties createp2installer="true" createcloudartifacts="epaas"/>
+
+	<customVariables>
+	
+		<localVariable name="defcon.minimum.bw.version" value="6.3.1"/>
+	
+	</customVariables>
+
+	 <installerFeature name="runtime" parentNode="runtime-node" profileUID="runtime-profile" version="6.0.0">
+
+     		<assemblylist>
+		<assembly uid="product_tibco_defcon_runtime" version="16.0.0"></assembly>
+		</assemblylist>
+		
+	<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Runtime" type="feature" uid="Runtime_BW" version="6.3.1"/>
+	
+	    <wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bw.version}"/>
+			<property vpdUID="BW_runtime"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_runtime"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BW Runtime"/>
+		</wizardAction>
+		
+	 </installerFeature>
+	
+	
+<installerFeature name="design" version="6.0.0" parentNode="design-node" profileUID="typical">
+
+		<assemblyList>
+			
+			
+		</assemblyList>
+		
+		<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Design" type="feature" uid="Design_BW" version="6.3.1"/>	
+
+		
+	<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bw.version}"/>
+			<property vpdUID="BW_design"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_design"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BW Design"/>
+		</wizardAction>
+		
+		 </installerFeature>
+	
+</TIBCOInstallerFeatures>

@@ -1,0 +1,10 @@
+<components>
+<component name="defcon_runtime" type="common">
+<include file="aliases_defcon.xml"/>
+
+<file src="${scriptsdir}/post-install.xml" dest="defcon/setup/post-install.xml" perm="644" plat="${ALL}"/>
+<file src="${bldsrcdir}/bin/defcon.tra" dest="defcon/bin/defcon.tra_template" perm="755" plat="${ALL}"/>
+<file src="${bldsrcdir}/dist/Defcon.jar" dest="lib/palettes/Defcon.jar" perm="755" plat="${ALL}"/>
+
+</component>
+</components>

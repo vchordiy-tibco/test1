@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<TIBCOInstallerFeatures>
+	<!-- featureincludes for installer -->
+	 <featureconfigincludes>
+		  <featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/defcon/pkg_info/bom/2.1.1/base" featureconfigname="contrib_wrapper_2.4.5_FeatureConfig.xml" plat="aix_power,aix_power_64,hpux_hppa,hpux_hppa_64,hpux_ia64_32,hpux_ia64,linux_s390x,macosx_x86_64,sol_x86,sol_x86_64,sol_sparc,sol_sparc_64,win_x86,win_x86_64,linux_x86"/>
+        	<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/defcon/pkg_info/bom/2.1.1/base" featureconfigname="contrib_wrapper-linux26_2.4.5_FeatureConfig.xml" plat="linux26gl23_x86_64,linux26gl23_x86"/>
+	</featureconfigincludes>
+	
+	<productDef name="TIBCO Defcon 2.1.1" secondaryId="newDefcon" id="defcon" version="2.1.1" releaseType="base" supportedPlatforms="win/x86,linux/x86,aix/power,linux_s390x" universalinstallerrelease="3.6.2" universalinstallerversion="V2" compatDisplayName="TIBCO Defcon" compatType="defcon" installDir="defcon/2.1" />
+
+	<!--documentation>    
+	<installguideFile path="/potsticker/products/pubs/docs4release/hawk/4.9.1/doc/pdf/TIB_hawk_4.9.1_installation.pdf"/>
+	<readmeFile path="/potsticker/products/pubs/docs4release/hawk-zlinux/4.9.1/TIB_hawk-zlinux_4.9.1_readme.txt"/>	  
+	  <relnotesFile path="/potsticker/products/pubs/docs4release/hawk/4.9.1/TIB_hawk_4.9.1_relnotes.pdf"/>
+      <licenseTxtFile path="/potsticker/products/pubs/docs4release/hawk-zlinux/4.9.1/license/TIB_hawk-zlinux_4.9.1_license.txt"/>
+      <licensePdfFile path="/potsticker/products/pubs/docs4release/hawk-zlinux/4.9.1/license/TIB_hawk-zlinux_4.9.1_license.pdf"/>	  
+	</documentation-->
+	<packagingProperties contribVisibleFeatures="true" updateContribProdType="false"/>
+	<build svnurl="http://svn.tibco.com/install/trunk/defcon" native="false" /> 
+	<customVariables>
+		<variable name="defcon.name" value="TIBCO Defcon"/>
+		<variable name="defcon.home" value="${tibco.home}${fsp}defcon${fsp}2.1"/>
+		<variable name="defcon.home.esc" value="${tibco.home.esc}/defcon/2.1"/>
+		<variable name="defcon.version" value="2.1.1" />
+		<variable name="defcon.short.version" value="2.1"/>
+		<variable name="defcon.pi" value="init_value"/>
+		<variable name="minimum.tra.version" value="5.7.1"/>
+		<variable name="minimum.designer.version" value="5.7.1"/>
+	</customVariables>
+
+	<installerFeature name="Runtime" version="2.1.1" installLocation="${defcon.home}">
+		<assemblyList>
+			<assembly uid="product_tibco_defcon_runtime" version="2.1.1"></assembly>			
+			<dependency description="TIBCO Runtime Agent" type="feature" uid="Runtime_TRA" vpduid="TRA_runtime" version="${minimum.tra.version}"/>
+		 <!--dependency type="feature" uid="main_wrapper" version="2.4.5" description="Wrapper" plat="aix_power,aix_power_64,hpux_ia64_32,hpux_ia64,linux_s390x,sol_x86,sol_x86_64,sol_sparc,sol_sparc_64,win_x86,win_x86_64,macosx_x86_64"/-->
+        <dependency type="feature" uid="main_gwrapper" version="2.4.5" description="gwrapper" plat="win_x86,win_x86_64,macosx_x86_64"/>
+        <dependency type="feature" uid="main_pwrapper" version="2.4.5" description="pwrapper" plat="win_x86,win_x86_64"/>
+		</assemblyList>
+		<postInstallAction
+			taskFile="${defcon.home.esc}/setup/post-install.xml"
+			target="post-install"
+			description="${defcon.name} Post-Installation - Runtime"
+			logLevel="debug"
+			sequence="post-assembly-ref">
+			<postInstallActionProperty name="tibco.rv.home" value="${TIBCO_RV_HOME}"/>
+			<postInstallActionProperty name="tibco.rv.home.esc" value="${TIBCO_RV_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.tpcl.home" value="${TIBCO_TPCL_HOME}"/>
+			<postInstallActionProperty name="tibco.tpcl.home.esc" value="${TIBCO_TPCL_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.tra.home" value="${TIBCO_TRA_HOME}"/>
+			<postInstallActionProperty name="tibco.tra.home.esc" value="${TIBCO_TRA_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.defcon.home" value="${defcon.home}"/>
+			<postInstallActionProperty name="tibco.defcon.home.esc" value="${defcon.home.esc}"/>
+		</postInstallAction>
+
+		<postInstallAction
+    		taskFile="${defcon.home.esc}/setup/post-install.xml"
+    		target="pre-uninstall"
+    		description="${defcon.name} Pre-Uninstallation - Runtime"
+    		logLevel="debug"
+    		sequence="pre-uninstall-ref">
+			<postInstallActionProperty name="tibco.defcon.home" value="${defcon.home}"/>
+			<postInstallActionProperty name="tibco.defcon.home.esc" value="${defcon.home.esc}"/>
+    	</postInstallAction>
+	</installerFeature>
+
+	<installerFeature name="Design" version="2.1.1" installLocation="${defcon.home}">
+		<assemblyList>
+			<assembly uid="product_tibco_defcon_design" version="2.1.1"></assembly>
+		</assemblyList>
+	</installerFeature>
+
+	<installerFeature name="Documentation" version="2.1.1" installLocation="${defcon.home}">
+		<assemblyList>
+			<assembly uid="product_tibco_defcon_docs" version="2.1.1"></assembly>
+		</assemblyList>
+	</installerFeature>
+</TIBCOInstallerFeatures>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TIBCOInstallerFeatures>
+
+    <productDef productType="contributor" id="teaserver" name="TEA Server" supportedPlatforms="macosx/x86_64,linux/x86_64,win/x86_64,sol/sparc_64,sol/x86_64,aix/power_64,hpux/ia64" 
+        universalinstallerrelease="3.6.2" universalinstallerversion="L"
+        productMMName="shared" productMMVersion="1.1.0" productMachineModel="false" version="2.3.0.000"/>
+
+    <customVariables>
+        <localVariable name="minimum.hawk.version" value="4.9"/>
+		<localVariable name="minimum.as.version" value="2.1"/>
+		<localVariable name="minimum.ems.version" value="6.1"/>
+		<localVariable name="minimum.rv.version" value="8.3"/> 
+		<localVariable name="minimum.tra.version" value="5.7"/>       
+    </customVariables>
+    
+    <installerFeature name="server" installLocation="${tea.home}" version="2.3.0" visible="false">
+        <assemblyList>
+			<assembly uid="product_tibco_tea_server" version="2.2.0"/>	
+			<assembly uid="product_tibco_tea_server_adjuncts" version="2.3.0"/>
+		</assemblyList>			
+		<!--Get Hawk install location. It will set TIBCO_HAWK_HOME and TIBCO_HAWK_HOME_ESC -->
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="install">
+                        <property productAcronym="hawk"/>
+                        <property minimumVersion="$L{minimum.hawk.version}"/>
+                        <property vpdUID="hawk"/>
+                        <property productAssemblyUID="product_tibco_hawk_required_common"/>
+                        <property productAssemblyMinVersion="$L{minimum.hawk.version}"/>
+                        <property showProgress="true"/>                        
+                        <property description="Get TIBCO Hawk install location."/>
+		</wizardAction>
+		<!--Get Hawk install location as part of TRA. It will set TIBCO_HAWK_HOME and TIBCO_HAWK_HOME_ESC -->
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="post-selection">
+                        <property productAcronym="TRA"/>
+                        <property minimumVersion="$L{minimum.tra.version}"/>
+                        <property vpdUID="TRA"/>
+                        <property productAssemblyUID="product_tibco_tra_common"/>
+                        <property productAssemblyMinVersion="$L{minimum.tra.version}"/>
+                        <property showProgress="true"/>                        
+                        <property description="Get TRA install location."/>
+		</wizardAction>
+		<!-- Get TIBCO ActiveSpaces install location. It will set TIBCO_ACTIVESPACES_HOME and TIBCO_ACTIVESPACES_HOME_ESC -->
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="post-selection">
+                        <property productAcronym="activespaces"/>
+                        <property minimumVersion="$L{minimum.as.version}"/>
+                        <property vpdUID="activespaces"/>
+                        <property productAssemblyUID="product_tibco_activespaces_common"/>
+                        <property productAssemblyMinVersion="$L{minimum.as.version}"/>
+                        <property showProgress="true"/>
+                        <property description="Get TIBCO ActiveSpaces install location."/>
+		</wizardAction>		
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="post-selection">
+                        <property productAcronym="ems"/>
+                        <property minimumVersion="$L{minimum.ems.version}"/>
+                        <property vpdUID="ems"/>
+                        <property productAssemblyUID="product_tibco_ems_common"/>
+                        <property productAssemblyMinVersion="$L{minimum.ems.version}"/>
+                        <property showProgress="true"/>
+                        <property description="Get EMS install location"/>
+         </wizardAction>
+         <wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="post-selection">
+                        <property productAcronym="rv"/>
+                        <property minimumVersion="$L{minimum.rv.version}"/>
+                        <property vpdUID="rv"/>
+                        <property productAssemblyUID="product_tibco_rv_common"/>
+                        <property productAssemblyMinVersion="$L{minimum.rv.version}"/>
+                        <property showProgress="true"/>
+                        <property description="Get RV install location"/>
+		 </wizardAction>
+		<postInstallAction description="Post installation for TIBCO Enterprise Server" sequence="post-assembly-ref" target="post-install-tea" taskFile="${tibco.home.esc}/tea/${tea.shortVersion}/setup/post-install.xml">				
+			<postInstallActionProperty name="tea.short.version" value="${tea.shortVersion}"/>
+			<postInstallActionProperty name="tra.file.location" value="${tea.home}/bin/tea.tra"/>    
+			<postInstallActionProperty name="tea.setup.dir" value="${tea.home}/setup"/>
+			<!-- Hawk Integration --> 
+			<postInstallActionProperty name="tea.tibco.hawk.home.esc" value="${TIBCO_HAWK_HOME_ESC}"/>
+			<postInstallActionProperty name="tea.tibco.as.home.esc" value="${TIBCO_ACTIVESPACES_HOME_ESC}"/>
+			<postInstallActionProperty name="tea.tibco.ems.home.esc" value="${TIBCO_EMS_HOME_ESC}"/>
+			<postInstallActionProperty name="tea.tibco.rv.home.esc" value="${TIBCO_RV_HOME_ESC}"/>
+			<postInstallActionProperty name="tea.tibco.tra.home.esc" value="${TIBCO_TRA_HOME_ESC}"/>
+			<!-- Hawk Integration --> 
+		</postInstallAction>	
+		<postInstallAction description="Post uninstallation for TIBCO Enterprise Server" sequence="pre-uninstall-ref" target="post-uninstall-tea" taskFile="${tibco.home.esc}/tea/${tea.shortVersion}/setup/post-install.xml" plat="win_x86_64">				
+			<postInstallActionProperty name="tea.short.version" value="${tea.shortVersion}"/>
+			<postInstallActionProperty name="tra.file.location" value="${tea.home}/bin/tea.tra"/>    
+		</postInstallAction>	
+	</installerFeature>
+	
+	<installerFeature name="wrapper" version="2.4.4" visible="false">
+    	<dependency type="feature" uid="main_wrapper" version="2.4.4" description="Wrapper" plat="linux26gl23_x86_64,macosx_x86_64,sol_sparc_64,sol_x86_64,aix_power_64,hpux_ia64"/>	
+    	<dependency type="feature" uid="main_wrapper-winvc10" version="2.4.4" description="wrapper" plat="win_x86_64"/>
+		<dependency type="feature" uid="main_gwrapper-winvc10" version="2.4.4" description="gwrapper" plat="win_x86,win_x86_64"/>
+		<dependency type="feature" uid="main_pwrapper-winvc10" version="2.4.4" description="pwrapper" plat="win_x86,win_x86_64"/>	
+    </installerFeature>
+	
+	<installerFeature name="steps" installLocation="${tea.home}" version="2.3.0" visible="false" plat="win_x86_64">		
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCreateWindowsShortcutWizardAction" sequence="post-install">
+			<property shortcutFolder="${shortcutFolder}"/>
+			<property shortcutName="${shortcutName}"/>
+			<property shortcutTarget="${tea.home}/bin/tea.exe" />
+			<property shortcutArgs=""/>
+			<property shortcutIcon=""/>
+			<property shortcutWorkingDirectory="${tea.home}/bin" />
+		</wizardAction>
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCORemoveWindowsShortcutWizardAction" sequence="post-uninstall">
+			<property shortcutFolder="${shortcutFolder}"/>
+			<property shortcutName="${shortcutName}"/>
+		</wizardAction>				
+	</installerFeature>
+		
+	<jvm jdk="false" version="1.7.0" forceExternal="true" jvmbit="64"/>
+	<customSettings enableTibcoHomeConfigDirectory="true" multipleEnvironmentSupport="true"/>
+</TIBCOInstallerFeatures>

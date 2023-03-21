@@ -1,0 +1,12 @@
+<project name="ec_client_call" basedir=".">
+<import file="ec_client_call_common.xml"/>
+
+<target name="package" depends="setConditions,setwin,setlnx,setmac,-testClientExistence,-getClients" >
+	<echo> ostype ${ostype} </echo>
+	<antcall target="login" />
+    
+	<FULL-test-installpackaging-procedure enable-zipassembly-creation="true" featureconfig-file="product_defcon_10.0.0_FeatureConfig.xml" svn-url="https://svn.tibco.com/svn/install/trunk/defcon/pkg_info/bom/10.0.0/base" svn-revision="HEAD" assembly-id="all" set-environment-variables="bldsrcdir=/local/relbuild/defcon_1000_test/defcon" recipient-email-address="msangale@tibco.com" ports="all"/>
+
+	<echo> Please see status of job at https://commander.na.tibco.com:5443/commander/jobs.php </echo>
+</target>
+</project>

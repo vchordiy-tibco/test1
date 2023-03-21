@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<aliases>
+
+<alias name="tibcodir" value="/tsi/root/tibco"/>
+<alias name="extdir" value="/tsi/root/external"/>
+<alias name="bldsrcdir" value="env.bldsrcdir"/>
+<alias name="scriptsdir" value="${bldsrcdir}/pkg_info/bom/3.0.0/scripts"/>
+<alias name="exportdir" value="${bldsrcdir}/build/dist"/>
+<alias name="docssrcdir" value="/potsticker/products/pubs/docs4release/defcon/2.1.0"/>
+
+<alias name="AIX_32" value="aix52_power"/>
+<alias name="AIX_64" value="aix52_power_64"/>
+<alias name="AIX" value="${AIX_32},${AIX_64}"/>
+
+<alias name="HPUX_32" value="hpux111_hppa"/>
+<alias name="HPUX_64" value="hpux111_hppa_64"/>
+<alias name="HPUX_IA64_32" value="hpux112_ia64_32"/>
+<alias name="HPUX_IA64" value="hpux112_ia64"/>
+<alias name="HPUX" value="${HPUX_32},${HPUX_64},${HPUX_IA64_32},${HPUX_IA64}"/>
+
+<alias name="ZLINUX_64" value="linux26gl24_s390x"/>
+<alias name="LINUX_32" value="linux24gl23_x86"/>
+<!--
+<alias name="LINUX_64" value="linux24gl23_x86_64,${ZLINUX_64}"/>
+-->
+<alias name="LINUX_64" value="linux24gl23_x86_64"/>
+<alias name="LINUX" value="${LINUX_32},${LINUX_64}"/>
+
+<alias name="SOLARIS_SPARC" value="sol8_sparc"/>
+<alias name="SOLARIS_SPARC_64" value="sol8_sparc_64"/>
+<alias name="SOLARIS_X86" value="sol10_x86"/>
+<alias name="SOLARIS_X86_64" value="sol10_x86_64"/>
+<alias name="SOLARIS_32" value="${SOLARIS_SPARC},${SOLARIS_X86}"/>
+<alias name="SOLARIS_64" value="${SOLARIS_SPARC_64},${SOLARIS_X86_64}"/>
+<alias name="SOLARIS" value="${SOLARIS_32},${SOLARIS_64}"/>
+
+<alias name="UNIX_32" value="${AIX_32},${HPUX_32},${HPUX_IA64_32},${LINUX_32},${SOLARIS_32}"/>
+<alias name="UNIX_64" value="${AIX_64},${HPUX_64},${HPUX_IA64},${LINUX_64},${SOLARIS_64}"/>
+<alias name="UNIX" value="${UNIX_32},${UNIX_64}"/>
+
+<alias name="WIN_32" value="win_x86"/>
+<alias name="WIN_64" value="win_x86_64"/>
+<alias name="WIN" value="${WIN_32},${WIN_64}"/>
+
+<alias name="ALL" value="${WIN},${UNIX}" />
+
+<alias name="ADMINCLIENT_PATH" value="${tibcodir}/admclt/5.5.0/L/rel" />
+<alias name="XERCES_PATH" value="${extdir}/parser/xercesc/2.8.0" />
+<alias name="XERCES_J_PATH" value="${extdir}/parser/xercesj/2.3.0" />
+<alias name="XSLT_PLUGIN_PATH" value="${tibcodir}/xsltplugin/5.0.5/L" />
+<alias name="ICU_PATH" value="${extdir}/ibm/icu/3.2" />
+
+</aliases>

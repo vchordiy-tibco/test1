@@ -1,0 +1,15 @@
+<project name="ec_client_call" basedir=".">
+    <!-- template for calling EC procedures -->
+    <!-- Instructions for use -->
+    <import file="defcon.xml"/>
+
+    
+    <target name="package" depends="setConditions,setwin,setlnx,setmac,-testClientExistence,-getClients" >
+	<echo> ostype ${ostype} </echo>
+	<antcall target="login" />
+
+   <defcon-3.0.0-build-packaging build-number="1" product-version="3.0.0" svn-src="https://svn.tibco.com/svn/install/trunk/defcon"/>
+	
+</target>
+
+</project>

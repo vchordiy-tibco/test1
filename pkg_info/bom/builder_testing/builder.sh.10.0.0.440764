@@ -1,0 +1,5470 @@
+#!/bin/sh
+#
+# $HeadURL: https://svn.tibco.com/svn/release/trunk/builder/scripts/builder.sh $
+# $Revision: 440764 $
+# $Date: 2018-03-06 12:09:12 -0800 (Tue, 06 Mar 2018) $
+#
+# Copyright(c) 2007-2016 TIBCO Software Inc. All rights reserved.
+#
+# builder.sh: script for builder-based componentized builds
+#
+
+BEGIN_TIME_ASSEMBLY=0
+   BEGIN_TIME_BUILD=0
+ BEGIN_TIME_OVERALL=`date '+%s'`
+ BEGIN_TIME_PUBLISH=0
+  END_TIME_ASSEMBLY=0
+     END_TIME_BUILD=0
+   END_TIME_OVERALL=0
+   END_TIME_PUBLISH=0
+
+export BEGIN_TIME_ASSEMBLY BEGIN_TIME_BUILD BEGIN_TIME_OVERALL BEGIN_TIME_PUBLISH \
+	END_TIME_ASSEMBLY END_TIME_BUILD END_TIME_OVERALL END_TIME_PUBLISH
+
+# Monitoring:
+
+_msg ()
+{
+	echo
+	echo "####"
+	case ${1} in
+	b)	shift 1
+		echo "#### ${*} (`date`): ..."
+		;;
+	e)	shift 1
+		echo "#### ${*} (`date`)."
+		;;
+	esac
+	echo "####"
+	echo
+}
+
+# Debugging:
+
+DEBUG=0
+TPUB=0
+TREC=0
+export DEBUG TPUB TREC
+
+_tlist ()
+{
+	_msg b "Available Tags for Error Recovery Messages (*.erm):"
+	cat <<-TLIST
+	@ACTUAL_BUILD_NUMBER@
+	@ACTUAL_BUILD_QUALIFIER@
+	@ACTUAL_VERSION@
+	@EXPECTED_BUILD_NUMBER@
+	@EXPECTED_BUILD_QUALIFIER@
+	@EXPECTED_VERSION@
+	@FEATURE_ID@
+	@MANIFEST@
+	@PUBLISH_SITE@
+	@SVN_DEPOT@
+	@SVN_REVISION@
+	@SVN_URL@
+	TLIST
+}
+
+while [ 1 ] ; do
+	case ${1} in
+	-dbg)
+		_msg b Activating Debugging Option: -dbg
+		shift 1
+		DEBUG=1
+		set -x
+		;;
+	-tpub)
+		_msg b Activating Test Publishing: -tpub
+		shift 1
+		TPUB=1
+		;;
+	-trec)
+		_msg b Activating Test Records: -trec
+		shift 1
+		TREC=1
+		;;
+	-tlist)
+		_msg b Displaying Available Tags: -tlist
+		_tlist
+		exit 0
+		;;
+	*)
+		break
+		;;
+	esac
+done
+
+# Operation Type:
+OP_TYPE="Build"
+export OP_TYPE
+
+# Exit Code:
+
+EXIT_CODE=0
+export EXIT_CODE
+
+# Status: see _status() for possible values of EXIT_STATUS for PDMS:
+
+EXIT_STATUS="UNKNOWN"
+export EXIT_STATUS
+
+# Exit message:
+
+EXIT_MSG="UNKNOWN"
+export EXIT_MSG
+
+# Process ID:
+
+PSTAMP="${$}"
+export PSTAMP
+
+DSTAMP="`date '+%Y-%m-%d-%H%M'`"
+export DSTAMP
+
+# Unix/Linux/Windows:
+
+UNAME_A="`uname -a`"
+UNAME_N="`uname -n`"
+UNAME_S="`uname -s`"
+export UNAME_A UNAME_N UNAME_S
+
+case ${UNAME_S} in
+Linux*)
+	ISLINUX=1
+	ISUNIX=1
+	ISWINDOWS=0
+	;;
+CYGWIN32_NT|CYGWIN_NT-[456].*)
+	ISLINUX=0
+	ISUNIX=0
+	ISWINDOWS=1
+	;;
+*)
+	ISLINUX=0
+	ISUNIX=1
+	ISWINDOWS=0
+	;;
+esac
+
+export ISLINUX ISUNIX ISWINDOWS
+
+# File creation:
+
+umask 002
+
+# Cygpath:
+
+if [ ${ISWINDOWS} -eq 1 ] ; then
+    CYGPATH="cygpath -u"
+else
+    CYGPATH="echo"
+fi
+export CYGPATH
+
+# Drives:
+
+if [ ${ISWINDOWS} -eq 1 ] ; then
+	DRIVE="`${CYGPATH} \"${DRIVE:-c:}\"`"
+	LOCALDRIVE="`${CYGPATH} \"${LOCALDRIVE:-c:}\"`"
+	SYSTEMDRIVE="`${CYGPATH} \"${SYSTEMDRIVE:-c:}\"`"
+	ROOTDRIVE="`${CYGPATH} \"${ROOTDRIVE:-r:}\"`"
+else
+	DRIVE="${DRIVE:-/local}"
+	LOCALDRIVE="${LOCALDRIVE:-/local}"
+	SYSTEMDRIVE="${SYSTEMDRIVE:-/local}"
+	ROOTDRIVE="${ROOTDRIVE:-/tsi}"
+fi
+# if network drive is not available then select the local one:
+[ -d ${ROOTDRIVE} ] || ROOTDRIVE="${LOCALDRIVE}"
+export DRIVE LOCALDRIVE SYSTEMDRIVE ROOTDRIVE
+
+# This program:
+
+dollar0=`${CYGPATH} "${0}"`
+ddollar0=`dirname "${dollar0}"`
+bdollar0=`basename "${dollar0}"`
+pdollar0="`cd \"${ddollar0}\" ; pwd`/${bdollar0}"
+
+# Version:
+
+svninfo="`head -4 \"${pdollar0}\" | tail -1 | \
+    sed -e 's,^.*Revision: ,SVN Revision ,' -e 's, \$.*$,,'`"
+[ "${svninfo}" = "#" ] && svninfo="SVN Revision Unknown"
+BUILDER_VERSION="10.0.0"
+_BUILDER_VERSION="${bdollar0} Version ${BUILDER_VERSION} (${svninfo})"
+export BUILDER_VERSION _BUILDER_VERSION
+
+# User:
+
+ID="`id`"
+USER="${USER:-${LOGNAME:-${USERNAME:-`id | \
+    sed 's,\\\\,\\\\\\\\,' | cut -d')' -f1 | cut -d'(' -f2`}}}"
+RUSER="tsi-release"
+export ID USER RUSER
+
+# Null device:
+
+if [ ${ISUNIX} -eq 1 ] ; then
+	DEVNULL="${DEVNULL:-/dev/null}"
+else
+	DEVNULL="`${CYGPATH} \"${DEVNULL:-nul}\"`"
+fi
+export DEVNULL
+
+# Root directories:
+
+DIST_ROOT="http://reldist.na.tibco.com"
+export DIST_ROOT
+
+if [ ${ISWINDOWS} -eq 1 ] ; then
+	TSI_ROOT="`${CYGPATH} \"${TSI_ROOT:-${ROOTDRIVE}}\"`"
+	PKG_ROOT="P:"
+else
+	TSI_ROOT="${TSI_ROOT:-${ROOTDRIVE}/root}"
+	PKG_ROOT="/tsi/pkg"
+fi
+export TSI_ROOT PKG_ROOT
+
+TIBCO_ROOT="${PKG_ROOT}/tibco"
+export TIBCO_ROOT
+
+TIBCO_LOGS="${TIBCO_ROOT}/logs/ru"
+TIBCO_HISTORY="${TIBCO_ROOT}/history/ru"
+_TIBCO_HISTORY="${DIST_ROOT}/package/tibco/history/ru"
+export TIBCO_LOGS TIBCO_HISTORY _TIBCO_HISTORY
+
+INTERNAL="`${CYGPATH} \"${INTERNAL:-${TSI_ROOT}/tibco}\"`"
+export INTERNAL
+
+EXTERNAL="`${CYGPATH} \"${EXTERNAL:-${TSI_ROOT}/external}\"`"
+export EXTERNAL
+
+TIBCO_BUILDER="${INTERNAL}/builder"
+export TIBCO_BUILDER
+
+SIGN_ROOT="${INTERNAL}/sign"
+SIGN="${SIGN_ROOT}/sign.sh"
+export SIGN_ROOT SIGN
+
+TIBCO_BUILD="${TIBCO_BUILDER}/tibco-build"
+_TIBCO_BUILD="`cd ${HOME}/tibco-build ; /bin/pwd`"
+__TIBCO_BUILD="${_TIBCO_BUILD}/tools"
+export TIBCO_BUILD _TIBCO_BUILD __TIBCO_BUILD
+
+_CANDIDATES_ROOT="candidates"
+CANDIDATES_ROOT="`cd ${_TIBCO_BUILD}/${_CANDIDATES_ROOT} ; /bin/pwd`"
+__CANDIDATES_ROOT="${TIBCO_BUILDER}/tibco-build/${_CANDIDATES_ROOT}"
+export _CANDIDATES_ROOT CANDIDATES_ROOT __CANDIDATES_ROOT
+
+CONFIG_ROOT="${CANDIDATES_ROOT}/config"
+export CONFIG_ROOT
+
+PUBLISH_ROOT="${TSI_ROOT}/reldist"
+_PUBLISH_ROOT="${DIST_ROOT}/reldist"
+if [ ${TPUB} -eq 1 ] ; then
+	PUBLISH_ROOT="${PUBLISH_ROOT}_test"
+	_PUBLISH_ROOT="${_PUBLISH_ROOT}_test"
+fi
+export PUBLISH_ROOT _PUBLISH_ROOT
+
+INTEG_ROOT="${_TIBCO_BUILD}/integ"
+_INTEG_ROOT="${TSI_ROOT}/integ"
+__INTEG_ROOT="${DIST_ROOT}/integ"
+[ -d ${INTEG_ROOT} ] || INTEG_ROOT="${TSI_ROOT}/integ"
+export INTEG_ROOT _INTEG_ROOT __INTEG_ROOT
+
+_SVN_ROOT="http://svn.tibco.com"
+SVN_ROOT="https://svn.tibco.com/svn"
+export _SVN_ROOT SVN_ROOT
+
+WSVN_ROOT="https://svn.tibco.com/websvn"
+_WSVN_ROOT="https://svn.tibco.com/wsvn"
+__WSVN_ROOT="${WSVN_ROOT}/wsvn"
+export WSVN_ROOT _WSVN_ROOT __WSVN_ROOT
+
+SRC_ROOT="${SRC_ROOT:-${_TIBCO_BUILD}/component}"
+export SRC_ROOT
+
+TEMPLATE_ROOT="${SRC_ROOT}/install/trunk/assembly_template"
+export TEMPLATE_ROOT
+
+PACKAGING_ROOT="${SRC_ROOT}/install/trunk/packaging"
+export PACKAGING_ROOT
+
+PROJECT_ROOT="${SRC_ROOT}/install/trunk/component"
+_PROJECT_ROOT="`echo ${PROJECT_ROOT} | sed -e \"s,^${SRC_ROOT}/,${SVN_ROOT}/,\"`"
+export PROJECT_ROOT _PROJECT_ROOT
+
+BUILDER_ROOT="${BUILDER_ROOT:-${SRC_ROOT}/release/trunk/builder}"
+export BUILDER_ROOT
+
+# Temporary files and directories:
+
+TMP_ROOT="${SRC_ROOT}/tmp"
+TMP_DIR="${TMP_ROOT}/tmp.${USER}-${PSTAMP}"
+export TMP_ROOT TMP_DIR
+
+ _BUILDER_LOG="${TMP_ROOT}/builder.${USER}-${PSTAMP}.log"
+    _SIGN_LOG="${TMP_ROOT}/sign.${USER}-${PSTAMP}.log"
+ _RECORDS_LOG="${TMP_ROOT}/records.${USER}-${PSTAMP}.log"
+ _PROJECT_LOG="${TMP_ROOT}/project.${USER}-${PSTAMP}.log"
+_ASSEMBLY_LOG="${TMP_ROOT}/assembly.${USER}-${PSTAMP}.log"
+ _ASMLIST_LOG="${TMP_ROOT}/asmlist.${USER}-${PSTAMP}.log"
+ _METRICS_LOG="${TMP_ROOT}/metrics.${USER}-${PSTAMP}.log"
+  PUBLISH_LOG="${TMP_ROOT}/publish.${USER}-${PSTAMP}.log"
+   STATUS_LOG="${TMP_ROOT}/status.${USER}-${PSTAMP}.log"
+      TAG_LOG="${TMP_ROOT}/tag.${USER}-${PSTAMP}.log"
+ CHECKOUT_LOG="${TMP_ROOT}/checkout.${USER}-${PSTAMP}.log"
+  SVNDIFF_LOG="${TMP_ROOT}/svndiff.${USER}-${PSTAMP}.log"
+   UPDATE_LOG="${TMP_ROOT}/update.${USER}-${PSTAMP}.log"
+  _NOTIFY_LOG="${TMP_ROOT}/notify.${USER}-${PSTAMP}.log"
+  _ERMTAG_LOG="${TMP_ROOT}/ermtag.${USER}-${PSTAMP}.log"
+    _EXIT_LOG="${TMP_ROOT}/exit.${USER}-${PSTAMP}.log"
+_RESOURCE_LOG="${TMP_ROOT}/resource.${USER}-${PSTAMP}.log"
+   _ISSET_LOG="${TMP_ROOT}/isset.${USER}-${PSTAMP}.log"
+
+export _BUILDER_LOG _SIGN_LOG _RECORDS_LOG _PROJECT_LOG _ASSEMBLY_LOG _ASMLIST_LOG \
+       _METRICS_LOG PUBLISH_LOG STATUS_LOG TAG_LOG CHECKOUT_LOG SVNDIFF_LOG \
+       UPDATE_LOG _NOTIFY_LOG _ERMTAG_LOG _EXIT_LOG _RESOURCE_LOG _ISSET_LOG
+
+# History:
+
+HST_ROOT="${BUILDER_ROOT}/history"
+[ ${TREC} -eq 1 ] && HST_ROOT="${HST_ROOT}_test"
+export HST_ROOT
+
+# Logs:
+
+LOG_ROOT="${BUILDER_ROOT}/logs"
+[ ${TREC} -eq 1 ] && LOG_ROOT="${LOG_ROOT}_test"
+export LOG_ROOT
+
+  BUILDER_LOG="${LOG_ROOT}/builder.log"
+     SIGN_LOG="${LOG_ROOT}/sign.log"
+  PROJECT_LOG="${LOG_ROOT}/project.log"
+ ASSEMBLY_LOG="${LOG_ROOT}/assembly.log"
+  METRICS_LOG="${LOG_ROOT}/metrics.log"
+   NOTIFY_LOG="${LOG_ROOT}/notify.log"
+ PDMS_ERM_LOG=""
+
+export BUILDER_LOG SIGN_LOG PROJECT_LOG ASSEMBLY_LOG \
+       METRICS_LOG NOTIFY_LOG PDMS_ERM_LOG
+
+# Manifests:
+
+MNF_ROOT="${BUILDER_ROOT}/manifests"
+[ ${TREC} -eq 1 ] && MNF_ROOT="${MNF_ROOT}_test"
+_MNF_ROOT="`echo ${MNF_ROOT} | sed -e \"s,^${SRC_ROOT}/,${SVN_ROOT}/,\"`"
+ASSEMBLY_MNF="${TMP_ROOT}/manifest.${USER}-${PSTAMP}.txt"
+export MNF_ROOT _MNF_ROOT ASSEMBLY_MNF
+
+# Scripts:
+
+SCR_ROOT="${BUILDER_ROOT}/scripts"
+_COMMIT_SCR="${TMP_ROOT}/commit.${USER}-${PSTAMP}.sh"
+_COMMIT_CFG="${TMP_ROOT}/commit.${USER}-${PSTAMP}.cfg"
+_EXPORT_CFG="${TMP_ROOT}/export.${USER}-${PSTAMP}.cfg"
+export SCR_ROOT _COMMIT_SCR _COMMIT_CFG _EXPORT_CFG
+
+# Lock Files:
+
+if [ ${TPUB} -eq 1 ] ; then
+	PUBLISHLCKNAME="publish_test.lck"
+	_PUBLISHLCKNAME="publish_test.${USER}-${PSTAMP}.lck"
+else
+	PUBLISHLCKNAME="publish.lck"
+	_PUBLISHLCKNAME="publish.${USER}-${PSTAMP}.lck"
+fi
+export PUBLISHLCKNAME _PUBLISHLCKNAME
+
+if [ ${TREC} -eq 1 ] ; then
+	RECORDSLCKNAME="records_test.lck"
+	_RECORDSLCKNAME="records_test.${USER}-${PSTAMP}.lck"
+else
+	RECORDSLCKNAME="records.lck"
+	_RECORDSLCKNAME="records.${USER}-${PSTAMP}.lck"
+fi
+export RECORDSLCKNAME _RECORDSLCKNAME
+
+LOCK_ROOT="${__CANDIDATES_ROOT}/lock"
+export LOCK_ROOT
+
+PUBLISH_LCK="${SCR_ROOT}/${PUBLISHLCKNAME}"
+PUBLISH_LCK="`echo ${PUBLISH_LCK} | sed -e \"s,^${SRC_ROOT}/,${SVN_ROOT}/,\"`"
+_PUBLISH_LCK="${LOCK_ROOT}/${_PUBLISHLCKNAME}"
+export PUBLISH_LCK _PUBLISH_LCK
+
+RECORDS_LCK="${SCR_ROOT}/${RECORDSLCKNAME}"
+RECORDS_LCK="`echo ${RECORDS_LCK} | sed -e \"s,^${SRC_ROOT}/,${SVN_ROOT}/,\"`"
+_RECORDS_LCK="${LOCK_ROOT}/${_RECORDSLCKNAME}"
+export RECORDS_LCK _RECORDS_LCK
+
+# Property Tester:
+
+ISSETXML="${SCR_ROOT}/_isset.xml"
+export ISSETXML
+
+# Builder Configuration File:
+
+BUILDER_CFG="${SCR_ROOT}/builder.cfg"
+export BUILDER_CFG
+
+# SVN Depots Configuration File:
+
+DEPOT_CFG="${SCR_ROOT}/depot.cfg"
+export DEPOT_CFG
+
+# SVN Mirror Depots Configuration File:
+
+MIRRORS_CFG="${SCR_ROOT}/mirrors.cfg"
+export MIRRORS_CFG
+
+# Resource Configuration File:
+
+RESOURCE_CFG="${CONFIG_ROOT}/resource.cfg"
+export RESOURCE_CFG
+
+# Official Build History File:
+
+BUILDER_HST="${HST_ROOT}/builder.hst"
+_BUILDER_HST="${HST_ROOT}/builder.${USER}-${PSTAMP}.hst"
+export BUILDER_HST _BUILDER_HST
+
+# Official Build Source History File:
+
+SRC_HST="${HST_ROOT}/source.hst"
+_SRC_HST="${HST_ROOT}/source.${USER}-${PSTAMP}.hst"
+export SRC_HST _SRC_HST
+
+# Official Build Metrics History File:
+
+METRICS_HST="${HST_ROOT}/metrics.hst"
+_METRICS_HST="${HST_ROOT}/metrics.${USER}-${PSTAMP}.hst"
+export METRICS_HST _METRICS_HST
+
+# Official Build Timing History File:
+
+TIMING_HST="${HST_ROOT}/timing.hst"
+_TIMING_HST="${HST_ROOT}/timing.${USER}-${PSTAMP}.hst"
+export TIMING_HST _TIMING_HST
+
+# Integration Build History File:
+
+BUILDERI_HST="${HST_ROOT}/builderi.hst"
+_BUILDERI_HST="${HST_ROOT}/builderi.${USER}-${PSTAMP}.hst"
+export BUILDERI_HST _BUILDERI_HST
+
+# Integration Build Source History File:
+
+SRCI_HST="${HST_ROOT}/sourcei.hst"
+_SRCI_HST="${HST_ROOT}/sourcei.${USER}-${PSTAMP}.hst"
+export SRCI_HST _SRCI_HST
+
+# Integration Build Metrics History File:
+
+METRICSI_HST="${HST_ROOT}/metricsi.hst"
+_METRICSI_HST="${HST_ROOT}/metricsi.${USER}-${PSTAMP}.hst"
+export METRICSI_HST _METRICSI_HST
+
+# Tag History File:
+
+TAG_HST="${HST_ROOT}/tag.hst"
+_TAG_HST="${HST_ROOT}/tag.${USER}-${PSTAMP}.hst"
+export TAG_HST _TAG_HST
+
+# Project History File:
+
+PROJECT_HST="${HST_ROOT}/project.hst"
+_PROJECT_HST="${HST_ROOT}/project.${USER}-${PSTAMP}.hst"
+export PROJECT_HST _PROJECT_HST
+
+# Sign History File:
+
+SIGN_HST="${HST_ROOT}/sign.hst"
+_SIGN_HST="${HST_ROOT}/sign.${USER}-${PSTAMP}.hst"
+export SIGN_HST _SIGN_HST
+
+# Assembly History File:
+
+ASSEMBLY_HST="${HST_ROOT}/assembly.hst"
+_ASSEMBLY_HST="${HST_ROOT}/assembly.${USER}-${PSTAMP}.hst"
+export ASSEMBLY_HST _ASSEMBLY_HST
+
+# Publish Locks History File:
+
+PLOCK_HST="${HST_ROOT}/plock.hst"
+_PLOCK_HST="${HST_ROOT}/plock.${USER}-${PSTAMP}.hst"
+export PLOCK_HST _PLOCK_HST
+
+# Records Locks History File:
+
+RLOCK_HST="${HST_ROOT}/rlock.hst"
+_RLOCK_HST="${HST_ROOT}/rlock.${USER}-${PSTAMP}.hst"
+export RLOCK_HST _RLOCK_HST
+
+# Build Failures History File:
+
+FAILURES_HST="${HST_ROOT}/failures.hst"
+_FAILURES_HST="${HST_ROOT}/failures.${USER}-${PSTAMP}.hst"
+export FAILURES_HST _FAILURES_HST
+
+# Assembly Extra Files:
+
+ASSEMBLY_EXTRA="additionalProps.txt"
+export ASSEMBLY_EXTRA
+
+# Assembly Filtering Flag:
+# 0) No Filters.
+# 1) Pattern Driven
+# 2) Manifest Driven
+fflag=2
+
+# Copyright:
+
+COPYRIGHT_Y="`date '+%Y'`"
+export COPYRIGHT_Y
+
+#
+# Functions:
+#
+
+_ap ()
+# Absolute Path (boolean)
+{
+	[ "`echo ${*} | cut -c1`" = "/" ] && return "1"
+	return 0
+}
+
+_usage ()
+# Displays the usage
+{
+_blanks="`echo ${bdollar0} | sed -e 's,., ,g'`"
+echo
+echo "${_BUILDER_VERSION}: usage is
+
+${bdollar0} -u URL -f FEATURE
+${_blanks} [ -res ]
+${_blanks} [ -n UNITNAME | -r SVN_CURRENT | -v UNITVERSION | -b UNITBN | -q UNITBQ ]
+${_blanks} [ -k | -kV | -K ]
+${_blanks} [ -p ]
+${_blanks} [ -fm [0|1|2] ]
+${_blanks} [ -zip | -ismp | -ismpzip ]
+${_blanks} [ -nosgn | -notag | -nocl | -nomet | -noasm | -noplck | -norlck | -norec ]
+${_blanks} [ -test | -int | -pf PFWC ]
+${_blanks} [ -j ECJOB | -U ECUSER | -E ECEMAIL ]
+${_blanks} [ -R REQUEST_ID ]
+${_blanks} [ -V | -h | -? ]
+
+	-u URL		Full URL for source code
+	-f FEATURE	Feature ID
+
+	-res		Retrieve EC Commander Resource: must be used after -u, does not require
+			-f, implies -notag, -nocl, -nomet, -noasm, -noplck, -norlck and -norec.
+
+	-n UNITNAME	Release Unit (Descriptive Name) - Bypass Config File
+	-r SVN_CURRENT	SVN Revision
+	-v UNITVERSION	Release Unit Version (expected).
+	-b UNITBN	Release Unit Build Number (expected).
+	-q UNITBQ	Release Unit Build Qualifier (expected).
+
+	-k		Keep locally forced build numbers and/or fast choreo set-up (${USER}.xml).
+	-kV		Keep pluginVersions.properties
+	-K		Keep source code (do not update). Ignored when using -r.
+
+	-p		Publish the RU (run ant publish)
+
+	-fm [0|1|2]	Assembly Filter Mode (default: ${fflag}):
+
+			0) No Filters
+			1) Pattern Driven
+			2) Manifest Driven
+
+	-zip		Build zip assembly only (default).
+	-ismp		Build ismp assembly only.
+	-ismpzip	Build both ismp and zip assemblies.
+
+
+	-nosgn		Do not sign jar files.
+	-notag		Do not tag the code.
+	-nocl		Do not generate change logs.
+	-nomet		Do not generate metrics.
+	-noasm		Do not build the assembly.
+	-noplck		Do not use Publish Locking.
+	-norlck		Do not use Record Locking.
+	-norec		Do not check in records.
+
+	-test		Test build: implies -notag and -norec. Cancels -p, -pf and -int.
+
+	-int		Integration build: implies -notag, -nocl, -noplck, -norlck,
+			-zip and -p (publish to integration site). Implies -n FEATURE
+			only if there is no entry for FEATURE in builder.cfg.
+			Cancels -pf and -test.
+
+	-pf PFWC	Pre-Flight build (Pre-Flight Working Copy): performs all sanity
+			checks on URL, FEATURE and PFWC, but no source checkout.
+			Implies -notag, -nocl, -nomet, -noasm, -noplck, -norlck and -norec.
+			Cancels -p, -test and -int.
+
+	-j ECJOB	Use ECJOB for record keeping.
+	-U ECUSER	Use ECUSER for record keeping.
+	-E ECEMAIL	Use ECEMAIL for record keeping.
+
+	-R REQUEST_ID	Release Portal REQUEST_ID for record keeping.
+
+	-V		Version
+	-h|-?		Help
+"
+}
+
+_cleanup ()
+{
+	[ ${DEBUG} -eq 0 ] && \
+	/bin/rm -f ${ASSEMBLY_MNF} ${CHECKOUT_LOG} ${CHECKOUT_LOG}.* ${PUBLISH_LOG} \
+		   ${STATUS_LOG} ${SVNDIFF_LOG} ${TAG_LOG} ${UPDATE_LOG} \
+		   ${_ASSEMBLY_LOG} ${_COMMIT_CFG} ${_COMMIT_SCR} ${_METRICS_LOG} \
+		   ${_NOTIFY_LOG} ${_PROJECT_LOG} ${_EXPORT_CFG} ${_RECORDS_LOG} \
+		   ${_ASMLIST_LOG} ${_SIGN_LOG}
+	/bin/rm -rf ${TMP_DIR}
+}
+
+_status ()
+{
+	case ${1} in
+	SUCCESSFUL|KILLED|INVALID_VERSION|INVALID_BUILD_NO|INVALID_FEATURE_ID|INVALID_SVN_DEPOT|INVALID_REVISION|INVALID_MANIFEST|BUILD_FAILED|SIGN_FAILED|TAG_FAILED|PUBLISH_FAILED|ASSEMBLY_FAILED|DISPLAY_RESOURCE|DISPLAY_USAGE)
+		echo "${1}"
+		;;
+	INVALID_BUILD_QUAL|INVALID_DIRECTORY|INVALID_JDK|INVALID_ANT|INVALID_SVN|INVALID_NODEJS)
+		echo "BUILD_FAILED"
+		;;
+	*)
+		echo "UNKNOWN"
+		;;
+	esac
+}
+
+__exit ()
+# ${1} : exit code
+# to be used to exit from inner loops without script termination
+{
+	echo "_exit=${1}"
+	exit ${1}
+}
+
+_erm ()
+{
+	[ -f ${_ERMTAG_LOG} ] && \
+	. ${_ERMTAG_LOG}
+	ERM="${SCR_ROOT}/${EXIT_STATUS}.erm"
+	ERM_LOG="${EXIT_STATUS}.erm.log"
+	_ERM_LOG="${TMP_ROOT}/${EXIT_STATUS}.erm.${USER}-${PSTAMP}.log"
+	export ERM ERM_LOG _ERM_LOG
+	actual_build_number_tag="${ACTUAL_BUILD_NUMBER:-ACTUAL_BUILD_NUMBER_UNKNOWN}"
+	actual_build_qualifier_tag="${ACTUAL_BUILD_QUALIFIER:-ACTUAL_BUILD_QUALIFIER_UNKNOWN}"
+	actual_version_tag="${ACTUAL_VERSION:-ACTUAL_VERSION_UNKNOWN}"
+	expected_build_number_tag="${EXPECTED_BUILD_NUMBER:-EXPECTED_BUILD_NUMBER_UNKNOWN}"
+	expected_build_qualifier_tag="${EXPECTED_BUILD_QUALIFIER:-EXPECTED_BUILD_QUALIFIER_UNKNOWN}"
+	expected_version_tag="${EXPECTED_VERSION:-EXPECTED_VERSION_UNKNOWN}"
+	feature_id_tag="${FEATURE_ID:-FEATURE_ID_UNKNOWN}"
+	manifest_tag="${___MANIFEST:-MANIFEST_UNKNOWN}"
+	publish_site_tag="${PUBLISH_SITE:-PUBLISH_SITE_UNKNOWN}"
+	svn_depot_tag="${SVN_DEPOT:-SVN_DEPOT_UNKNOWN}"
+	svn_revision_tag="${SVN_REVISION:-SVN_REVISION_UNKNOWN}"
+	svn_url_tag="${SVN_URL:-SVN_URL_UNKNOWN}"
+	working_copy_tag="${PFWC:-WORKING_COPY_UNKNOWN}"
+	[ -f ${ERM} ] || return
+	(_msg b Retrieving Recovery Instructions for Exit Status \"${EXIT_STATUS}\":) 2>&1 | \
+		tee -a ${_EXIT_LOG}
+	cat ${ERM} | sed \
+		-e "s,@ACTUAL_BUILD_NUMBER@,${actual_build_number_tag},g" \
+		-e "s,@ACTUAL_BUILD_QUALIFIER@,${actual_build_qualifier_tag},g" \
+		-e "s,@ACTUAL_VERSION@,${actual_version_tag},g" \
+		-e "s,@EXPECTED_BUILD_NUMBER@,${expected_build_number_tag},g" \
+		-e "s,@EXPECTED_BUILD_QUALIFIER@,${expected_build_qualifier_tag},g" \
+		-e "s,@EXPECTED_VERSION@,${expected_version_tag},g" \
+		-e "s,@FEATURE_ID@,${feature_id_tag},g" \
+		-e "s,@MANIFEST@,${manifest_tag},g" \
+		-e "s,@PUBLISH_SITE@,${publish_site_tag},g" \
+		-e "s,@SVN_DEPOT@,${svn_depot_tag},g" \
+		-e "s,@SVN_REVISION@,${svn_revision_tag},g" \
+		-e "s,@SVN_URL@,${svn_url_tag},g" \
+		-e "s,@WORKING_COPY@,${working_copy_tag},g" \
+	2>&1 | tee ${_ERM_LOG} | tee -a ${_EXIT_LOG}
+	/bin/rm -f ${_ERMTAG_LOG}
+}
+
+# Exit Code:
+
+_exit ()
+# ${1} : exit code
+# ${2} : exit status
+# ${3} ... ${n} : other parameters
+# Displays an error message before exiting
+{
+	EXIT_CODE=${1}
+	shift 1
+	EXIT_STATUS="`_status ${1}`"
+	shift 1
+	case ${EXIT_STATUS} in
+	"TAG_FAILED"|"PUBLISH_FAILED"|"ASSEMBLY_FAILED"|"UNKNOWN")
+		_rmtag
+		case ${EXIT_STATUS} in
+		"ASSEMBLY_FAILED")
+			_rmasm
+			;;
+		*)
+			:
+			;;
+		esac
+		;;
+	*)
+		:
+		;;
+	esac
+	[ ${EXIT_CODE} -ne 0 ] && rflag=0
+	case ${EXIT_CODE} in
+	0)
+		:
+		;;
+	1)
+		echo "${dollar0}: not enough arguments <${*}>"
+		_usage
+		;;
+	2)
+		case ${EXIT_STATUS} in
+		"DISPLAY_RESOURCE")
+			_resource
+			;;
+		"DISPLAY_USAGE")
+			_usage
+			;;
+		esac
+		;;
+	3)
+		echo "${_BUILDER_VERSION}"
+		;;
+	4)
+		EXIT_MSG="${dollar0}: caught signal"
+		(echo ; echo "${EXIT_MSG}") 2>&1 | tee ${_EXIT_LOG}
+		;;
+	5)
+		EXIT_MSG="${dollar0}: could not remove file(s): <${*}>"
+		echo "${EXIT_MSG}"
+		;;
+	6)
+		EXIT_MSG="${dollar0}: could not remove symbolic link(s): <${*}>"
+		echo "${EXIT_MSG}"
+		;;
+	7)
+		EXIT_MSG="${dollar0}: ${1} not found: <${2}>"
+		echo "${EXIT_MSG}"
+		;;
+	8)
+		EXIT_MSG="${dollar0}: invalid ${1}: <${2}> (expected: <${3}>)"
+		echo "${EXIT_MSG}"
+		;;
+	9)
+		EXIT_MSG="${dollar0}: could not remove UNIT <${1}> configuration"
+		echo "${EXIT_MSG}"
+		;;
+	10)
+		EXIT_MSG="${dollar0}: could not build UNIT <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	11)
+		EXIT_MSG="${dollar0}: ${1} <${2}> not supported"
+		echo "${EXIT_MSG}"
+		;;
+	12)
+		EXIT_MSG="${dollar0}: could not tag UNIT <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	13)
+		EXIT_MSG="${dollar0}: cannot locate main feature <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	14)
+		EXIT_MSG="${dollar0}: ${1} <${2}> obsolete"
+		echo "${EXIT_MSG}"
+		;;
+	15)
+		EXIT_MSG="${dollar0}: svn <${1}> failed"
+		echo "${EXIT_MSG}"
+		;;
+	16)
+		EXIT_MSG="${dollar0}: could not publish UNIT <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	17)
+		EXIT_MSG="${dollar0}: invalid ${1}: <${2}>"
+		echo "${EXIT_MSG}"
+		;;
+	18)
+		EXIT_MSG="${dollar0}: could not ${1} directory: <${2}>"
+		echo "${EXIT_MSG}"
+		;;
+	19)
+		EXIT_MSG="${dollar0}: could not build ASSEMBLY for <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	20)
+		EXIT_MSG="${dollar0}: ${1} not specified"
+		echo "${EXIT_MSG}"
+		;;
+	21)
+		EXIT_MSG="${dollar0}: cannot locate Release Unit Name for <${1}>"
+		echo "${EXIT_MSG}"
+		echo "${dollar0}: must be added to Configuration File <${2}>"
+		;;
+	22)
+		EXIT_MSG="${dollar0}: could not create ASSEMBLY PROJECT for <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	23)
+		EXIT_MSG="${dollar0}: could not retrieve value for <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	24)
+		EXIT_MSG="${dollar0}: cannot identify Depot Name for URL: <${1}>"
+		echo "${EXIT_MSG}"
+		echo "${dollar0}: must be listed and ENABLED in the Depot Configuration File"
+		echo "${dollar0}: (${DEPOT_CFG}):"
+		echo
+		cat ${DEPOT_CFG} |egrep -v "^#|^$"
+		;;
+	25)
+		EXIT_MSG="${dollar0}: could not ${1} file: <${2}>"
+		echo "${EXIT_MSG}"
+		;;
+	26)
+		EXIT_MSG="${dollar0}: could not obtain lock to publish UNIT <${1}>"
+		echo "${EXIT_MSG}"
+		;;
+	*)
+		EXIT_MSG="${dollar0}: unknown termination reason"
+		echo "${EXIT_MSG}"
+		_usage
+		;;
+	esac
+
+	if [ ${EXIT_CODE} -gt 3 ] ; then
+		_candidates
+		_erm
+		if [ ${Iflag} -eq 1 ] ; then
+			_LOGS="logsi"
+		else
+			if [ ${Tflag} -eq 1 ] ; then
+				_LOGS="logst"
+			else
+				if [ ${Pflag} -eq 1 ] ; then
+					_LOGS="logsp"
+				else
+					_LOGS="logs"
+				fi
+			fi
+		fi
+		export _LOGS
+		if [ -d ${CANDIDATES}/logs ] ; then
+			__BUILDER_LOG="${CANDIDATES}/logs/`basename ${BUILDER_LOG}`"
+			__ERM_LOG="${CANDIDATES}/logs/${ERM_LOG}"
+		else
+			__BUILDER_LOG="${CANDIDATES_ROOT}/${_LOGS}/`basename ${_BUILDER_LOG}`"
+			__ERM_LOG="${CANDIDATES_ROOT}/${_LOGS}/`basename ${_ERM_LOG}`"
+		fi
+		if [ -f ${_BUILDER_LOG} ] ; then
+			if [ \( ${Iflag} -eq 1 \) -o \( ${Pflag} -eq 1 \) ] ; then
+				[ -d ${CANDIDATES_ROOT}/${_LOGS} ] || \
+					mkdir -p ${CANDIDATES_ROOT}/${_LOGS}
+				_logd="`cd ${CANDIDATES_ROOT}/${_LOGS} ; /bin/pwd`"
+				PDMS_BUILDER_LOG="`echo ${_logd}/\`basename ${_BUILDER_LOG}\` | \
+				sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+			else
+				PDMS_BUILDER_LOG="`echo ${__BUILDER_LOG} | sed -e \
+				\"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+			fi
+			_tools_log
+			if [ "${TOOLS_LOG}" != "" ] ; then
+				if [ \( ${Iflag} -eq 1 \) -o \( ${Pflag} -eq 1 \) ] ; then
+					cp -p ${TOOLS_LOG} ${CANDIDATES_ROOT}/${_LOGS}/${__TOOLS_LOG}
+					_TOOLS_LOG="`echo ${_logd}/${__TOOLS_LOG} | \
+					sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+				fi
+			fi
+		fi
+		_setup_log
+		_dependencies_log
+		_feature_log
+		if [ -f ${_ERM_LOG} ] ; then
+			if [ \( ${Iflag} -eq 1 \) -o \( ${Pflag} -eq 1 \) ] ; then
+				_logd="`cd ${CANDIDATES_ROOT}/${_LOGS} ; /bin/pwd`"
+				PDMS_ERM_LOG="`echo ${_logd}/\`basename ${_ERM_LOG}\` | \
+				sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+			else
+				PDMS_ERM_LOG="`echo ${__ERM_LOG} | sed -e \
+				\"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+			fi
+		fi
+		_pdms 2>&1 | tee -a ${_EXIT_LOG}
+		[ -d "${CANDIDATES_ROOT}/${_LOGS}" ] || \
+			mkdir -p "${CANDIDATES_ROOT}/${_LOGS}"
+		if [ -f ${_BUILDER_LOG} ] ; then
+			if [ ${EXIT_CODE} -eq 4 ] ; then
+				cat ${_EXIT_LOG} >> ${_BUILDER_LOG}
+			fi
+			cp -p ${_BUILDER_LOG} ${__BUILDER_LOG}
+			cp -p ${_BUILDER_LOG} ${CANDIDATES_ROOT}/${_LOGS}
+			/bin/rm -f ${_BUILDER_LOG}
+		fi
+		if [ -f ${_ERM_LOG} ] ; then
+			cp -p ${_ERM_LOG} ${__ERM_LOG}
+			cp -p ${_ERM_LOG} ${CANDIDATES_ROOT}/${_LOGS}
+			/bin/rm -f ${_ERM_LOG}
+		fi
+		/bin/rm -f ${_EXIT_LOG}
+	fi
+
+	echo "${_BUILDER_VERSION}: exiting (${EXIT_CODE}) ..."
+	echo "Command line: ${cmdline}"
+
+	[ ${EXIT_CODE} -gt 3 ] && [ ${frflag} -eq 1 ] && _recordsf && _update_tibco
+
+	[ ${rflag} -eq 1 ] && _records && _update_tibco
+
+	if [ ${EXIT_CODE} -eq 0 ]; then
+		if [ -f ${_RECORDS_LCK} ] ; then
+			cat ${_RECORDS_LOG} >> ${_BUILDER_LOG}
+		fi
+		[ -d "${LOGD}" ] && \
+		cp ${_BUILDER_LOG} ${LOGD}/`basename ${BUILDER_LOG}`
+		/bin/rm -f ${_BUILDER_LOG}
+	fi
+
+	_cleanup
+	cd "${pw}"
+	case ${EXIT_CODE} in
+		0|1|4)	:
+			;;
+		*)	_export
+			;;
+	esac
+	exit ${EXIT_CODE}
+}
+
+_which ()
+{
+	_b="${1}"
+	for _d in `echo ${PATH} | sed -e 's,:, ,g'` ; do
+		_f="${_d}/${_b}"
+		[ -f "${_f}" ] && echo "${_f}" && break
+	done
+}
+
+echon ()
+{
+	if [ "`echo -n`" = "-n" ] ; then
+		echo "${*}\c"
+	else
+		echo -n "${*}"
+	fi
+}
+
+_pause ()
+{
+	echon "PAUSED (${*}): hit <RETURN> to continue"
+	read CONTINUE
+}
+
+_svn_current ()
+{
+	# find the current svn revision:
+	SVN_CURRENT="`svn info \"${UNIT_WC}\" | grep Revision: | cut -d' ' -f2`"
+}
+
+_svn_latest ()
+{
+	# find the latest svn revision:
+	SVN_LATEST="`svn info \"${URL}\" | grep Revision: | cut -d' ' -f2`"
+}
+
+_gettools ()
+{
+	[ -d ${__TIBCO_BUILD} ] || _exit 18 locate ${__TIBCO_BUILD}
+	TOOLS_URL="`cd ${__TIBCO_BUILD} ; svn info . | grep \"^URL: \" | cut -d' ' -f2`"
+	TOOLS_NAME="`basename ${TOOLS_URL}`"
+	TOOLS_SVNREV="`cd ${__TIBCO_BUILD} ; svn info . | grep \"^Last Changed Rev: \" | cut -d' ' -f4`"
+	export TOOLS_URL TOOLS_NAME TOOLS_SVNREV
+}
+
+_parameters ()
+{
+	_msg b Displaying ${BUILD_TYPE} Build Parameters
+	echo "####"
+	echo "#### ${_BUILDER_VERSION}"
+	echo "####"
+	echo "#### ${UNAME_A}"
+	echo "####"
+	echo "#### ${ID}"
+	echo "####"
+	echo "#### REQUEST_ID                = <${REQUEST_ID}>"
+	echo "####"
+	echo "#### USER                      = <${USER}>"
+	echo "#### ECUSER                    = <${ECUSER}>"
+	echo "#### ECEMAIL                   = <${ECEMAIL}>"
+	echo "####"
+	echo "#### ECJOB                     = <${ECJOB}>"
+	echo "####"
+	echo "#### PSTAMP                    = <${PSTAMP}>"
+	echo "####"
+	echo "#### Release Unit Name         = <${UNITNAME}>"
+	echo "#### Feature ID                = <${FEATURE}>"
+	echo "####"
+	echo "#### Release Unit Type         = <${_RU_TYPE}>"
+	echo "####"
+	echo "#### Assembly Support          = <${_ASSEMBLY_TYPE}>"
+	echo "####"
+	echo "#### Source Code URL           = <${URL}>"
+	echo "#### Source Code Root Location = <${SRC_ROOT}>"
+	echo "####"
+	echo "#### Release Unit Working Copy = <${UNIT_WC}>"
+	echo "####"
+	if [ "${CANDIDATES}" != "" ] ; then
+		echo "#### Candidates Location       = <${CANDIDATES}>"
+		echo "####"
+	fi
+	echo "#### Logs Location             = <${LOG_ROOT}>"
+	echo "#### History Files Location    = <${HST_ROOT}>"
+	echo "#### Manifest Files Location   = <${MNF_ROOT}>"
+	echo "#### Scripts Location          = <${SCR_ROOT}>"
+	if [ ${pflag} -eq 1 ] ; then
+		echo "####"
+		echo "#### Publish Location          = <${PSITE}>"
+	fi
+	echo "####"
+	echo "#### SVN Revision              = <${SVN_CURRENT}> (Latest: ${SVN_LATEST})"
+	echo "####"
+	echo "#### ANT_VERSION               = <${ANT_VERSION}>"
+	echo "#### SVN_VERSION               = <${SVN_VERSION}>"
+	echo "#### NODEJS_VERSION            = <${NODEJS_VERSION}>"
+	echo "####"
+	echo "#### javacSource               = <${JAVACSOURCE}>"
+	echo "#### JDK_VERSION               = <${JDK_VERSION}>"
+	echo "####"
+	echo "#### PATH                      = <${PATH}>"
+	echo "####"
+	echo "#### autobuild.jdk.force-15    = <${JDK_FORCE_15}>"
+	echo "#### autobuild.jdk.force-16    = <${JDK_FORCE_16}>"
+	echo "#### autobuild.jdk.force-17    = <${JDK_FORCE_17}>"
+	echo "#### autobuild.jdk.force-18    = <${JDK_FORCE_18}>"
+	echo "#### autobuild.jdk.force-110    = <${JDK_FORCE_110}>"
+	echo "####"
+	echo "#### autobuild.dir.java-classes   = <${JAVADF_CLASSES}>"
+	echo "#### autobuild.dir.java15-classes = <${JAVA15_CLASSES}>"
+	echo "#### autobuild.dir.java16-classes = <${JAVA16_CLASSES}>"
+	echo "#### autobuild.dir.java17-classes = <${JAVA17_CLASSES}>"
+	echo "#### autobuild.dir.java18-classes = <${JAVA18_CLASSES}>"
+	echo "#### autobuild.dir.java110-classes = <${JAVA110_CLASSES}>"
+	echo "####"
+	echo "#### Tools URL                 = <${TOOLS_URL}>"
+	echo "#### Tools Svn Revision        = <${TOOLS_SVNREV}>"
+	echo "#### Tools Boilerplate Version = <${TOOLS_BPV}>"
+	echo "#### tibco-build Location      = <${_TIBCO_BUILD}>"
+	echo "####"
+	echo "#### OS                        = <${OS}>"
+	echo "#### ARCH                      = <${ARCH}>"
+	echo "#### PORT                      = <${PORT}>"
+	echo "####"
+	echo "#### Command Line              = <${cmdline}>"
+	echo "####"
+}
+
+_port ()
+{
+	LOGIN_VERSION="4.0.0"
+	LOGIN_HOME="${INTERNAL}/login/${LOGIN_VERSION}"
+	export LOGIN_VERSION LOGIN_HOME
+	_msg b Setting PORT
+	eval `sh ${LOGIN_HOME}/set_port.sh sh`
+	[ ${ISLINUX} -eq 1 ] || _exit 17 INVALID_PORT PORT ${PORT}
+	_msg e "PORT OK (${PORT})"
+}
+
+_jdkcheck ()
+{
+	_isset javacSource | tee ${_ISSET_LOG}
+	JAVACSOURCE="`grep '\[echo\] javacSource = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVACSOURCE
+	case ${JAVACSOURCE} in
+	    11.0)
+			JDK_VERSION="11.0.9"
+			;;
+		1.8)
+			JDK_VERSION="1.8.0_92"
+			;;
+		1.7)
+			JDK_VERSION="1.7.0_99"
+			;;
+		1.6)
+			JDK_VERSION="1.6.0_30"
+			;;
+		1.5)
+			JDK_VERSION="1.5.0_16"
+			;;
+		1.4)
+			JDK_VERSION="1.4.2_13"
+			;;
+		1.3)
+			JDK_VERSION="1.3.1_12"
+			;;
+		UNDEFINED)
+			if [ "${TOOLS_BPV}" = "2.1" ] ; then
+				JDK_VERSION="1.7.0_99"
+			else
+				JDK_VERSION="11.0.9"
+			fi
+			;;
+		*)
+			JDK_VERSION="1.6.0_30"
+			_exit 8 INVALID_JDK "javacSource" "${JAVACSOURCE}" "1.[3-8]"
+			;;
+	esac
+	export JDK_VERSION
+	_msg e Jdk Version set to ${JDK_VERSION}
+
+	JDK_HOME="${EXTERNAL}/jdk/${JDK_VERSION}"
+	JAVA_HOME="${JDK_HOME}/${PORT}"
+	PATH="${JAVA_HOME}/bin:${PATH}"
+	export JDK_HOME JAVA_HOME PATH
+	echo "${JDK_HOME} ${JAVA_HOME} ${PATH}"
+
+	_msg b Checking Jdk Version
+	_jdk_version="`java -version 2>&1 | head -1 | cut -d'\"' -f2`"
+	if [ "${_jdk_version}" != "${JDK_VERSION}" ] ; then
+		_exit 8 INVALID_JDK "JDK version" "${_jdk_version}" "${JDK_VERSION}"
+	else
+		_msg e "Jdk Version OK (${JDK_VERSION})"
+	fi
+
+	_isset autobuild.jdk.force-15 | tee ${_ISSET_LOG}
+	JDK_FORCE_15="`grep '\[echo\] autobuild.jdk.force-15 = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JDK_FORCE_15
+
+	_isset autobuild.jdk.force-16 | tee ${_ISSET_LOG}
+	JDK_FORCE_16="`grep '\[echo\] autobuild.jdk.force-16 = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JDK_FORCE_16
+
+	_isset autobuild.jdk.force-17 | tee ${_ISSET_LOG}
+	JDK_FORCE_17="`grep '\[echo\] autobuild.jdk.force-17 = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JDK_FORCE_17
+
+	_isset autobuild.jdk.force-18 | tee ${_ISSET_LOG}
+	JDK_FORCE_18="`grep '\[echo\] autobuild.jdk.force-18 = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JDK_FORCE_18
+	
+	_isset autobuild.jdk.force-110 | tee ${_ISSET_LOG}
+	JDK_FORCE_110="`grep '\[echo\] autobuild.jdk.force-110 = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JDK_FORCE_110	
+
+	_isset autobuild.dir.java-classes | tee ${_ISSET_LOG}
+	JAVADF_CLASSES="`grep '\[echo\] autobuild.dir.java-classes = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVADF_CLASSES
+
+	_isset autobuild.dir.java15-classes | tee ${_ISSET_LOG}
+	JAVA15_CLASSES="`grep '\[echo\] autobuild.dir.java15-classes = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVA15_CLASSES
+
+	_isset autobuild.dir.java16-classes | tee ${_ISSET_LOG}
+	JAVA16_CLASSES="`grep '\[echo\] autobuild.dir.java16-classes = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVA16_CLASSES
+
+	_isset autobuild.dir.java17-classes | tee ${_ISSET_LOG}
+	JAVA17_CLASSES="`grep '\[echo\] autobuild.dir.java17-classes = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVA17_CLASSES
+
+	_isset autobuild.dir.java18-classes | tee ${_ISSET_LOG}
+	JAVA18_CLASSES="`grep '\[echo\] autobuild.dir.java18-classes = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVA18_CLASSES
+	
+	_isset autobuild.dir.java110-classes | tee ${_ISSET_LOG}
+	JAVA110_CLASSES="`grep '\[echo\] autobuild.dir.java110-classes = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	export JAVA110_CLASSES
+}
+
+_antcheck ()
+{
+	ANT_VERSION="1.7.1"
+	ANT_HOME="${EXTERNAL}/ant/${ANT_VERSION}"
+	PATH="${EXTERNAL}/jdk/1.7.0/linux/x86/bin:${ANT_HOME}/${PORT}/bin:${PATH}"
+	export ANT_VERSION ANT_HOME PATH
+	_msg b Checking Ant Version
+	_ant_version="`ant -version 2>&1 | head -1 | cut -d' ' -f4`"
+	if [ "${_ant_version}" != "${ANT_VERSION}" ] ; then
+		_exit 8 INVALID_ANT "ant version" "${_ant_version}" "${ANT_VERSION}"
+	else
+		_msg e "Ant Version OK (${ANT_VERSION})"
+	fi
+}
+
+_svncheck ()
+{
+	SVN_VERSION="1.8.10"
+	SVN_HOME="${EXTERNAL}/svn/${SVN_VERSION}"
+	PATH="${SVN_HOME}/${PORT}/bin:${PATH}"
+	export SVN_VERSION SVN_HOME PATH
+	_msg b Checking Svn Version
+	_svn_version="`svn --version 2>&1 | head -1 | cut -d' ' -f3`"
+	if [ "${_svn_version}" != "${SVN_VERSION}" ] ; then
+		_exit 8 INVALID_SVN "svn version" "${_svn_version}" "${SVN_VERSION}"
+	else
+		_msg e "Svn Version OK (${SVN_VERSION})"
+	fi
+}
+
+NODEJS_BINS="node npm grunt"
+export NODEJS_BINS
+
+_nodejscheck ()
+{
+	case ${PORT} in
+	"linux26gl25/x86")
+		NODEJS_VERSION="0.10.25"
+		NODEJS_HOME="${EXTERNAL}/nodejs/${NODEJS_VERSION}"
+		PATH="${NODEJS_HOME}/${PORT}/bin:${PATH}"
+		export NODEJS_VERSION NODEJS_HOME PATH
+		_msg b Checking Nodejs Version
+		_nodejs_version="`node -v 2>&1 | head -1 | cut -c2-`"
+		if [ "${_nodejs_version}" != "${NODEJS_VERSION}" ] ; then
+			_exit 8 INVALID_NODEJS "nodejs version" "${_nodejs_version}" "${NODEJS_VERSION}"
+		else
+			_msg e "Nodejs Version OK (${NODEJS_VERSION})"
+		fi
+		;;
+	"linux26gl212/x86")
+	 	NODEJS_VERSION="0.10.25"
+                NODEJS_HOME="${EXTERNAL}/nodejs/${NODEJS_VERSION}"
+                PATH="${NODEJS_HOME}/${PORT}/bin:${PATH}"
+                export NODEJS_VERSION NODEJS_HOME PATH
+                _msg b Checking Nodejs Version
+                _nodejs_version="`node -v 2>&1 | head -1 | cut -c2-`"
+                if [ "${_nodejs_version}" != "${NODEJS_VERSION}" ] ; then
+                        _exit 8 INVALID_NODEJS "nodejs version" "${_nodejs_version}" "${NODEJS_VERSION}"
+                else
+                        _msg e "Nodejs Version OK (${NODEJS_VERSION})"
+                fi
+
+		;;
+	esac
+}
+
+__urlcheck ()
+{
+	if [ "${1}" = "-y" ] ; then
+		_yn=1
+		_exists="MUST EXIST"
+	else
+		_yn=0
+		_exists="MUST NOT EXIST"
+	fi
+	_url="${2}"
+	_ermtag SVN_URL ${_url}
+	if [ "${3}" != "" ] ; then
+		_rev="${3}"
+	else
+		_rev="HEAD"
+	fi
+	_msg b URL ${_url}@${_rev} ${_exists}
+	_invalidrev="No such revision"
+	case ${SVN_VERSION} in
+	1.8.10)
+		__url="`svn info \"${_url}@${_rev}\" 2>&1 | tail -1`"
+		_invalidurl="Could not display info"
+		_validurl="`echo ${__url} | grep \"${_invalidurl}\" | cut -d' ' -f3-6`"
+		_validrev="`echo ${__url} | cut -d' ' -f3-5`"
+		;;
+	1.6.9|*)
+		__url="`svn info \"${_url}@${_rev}\" 2>&1 | head -1`"
+		_invalidurl="Not a valid URL"
+		_validurl="`echo ${__url} | grep \"${_invalidurl}\" | cut -d'(' -f2 | cut -d')' -f1`"
+		_validrev="`echo ${__url} | cut -d' ' -f2-4`"
+		;;
+	esac
+	[ "${_validrev}" = "${_invalidrev}" ] && \
+		_exit 17 INVALID_REVISION REVISION ${_rev}
+	_validrev="`echo ${__url} | cut -d' ' -f2-6`"
+	[ "${_validrev}" = "Server sent unexpected return value" ] && \
+		_exit 17 INVALID_REVISION REVISION ${_rev}
+	if [ ${_yn} -eq 1 ] ; then
+		[ "${_validurl}" = "${_invalidurl}" ] && \
+			_exit 17 INVALID_SVN_DEPOT URL "${_url}@${_rev}"
+	else
+		[ "${_validurl}" != "${_invalidurl}" ] && \
+			_exit 17 INVALID_SVN_DEPOT URL "${_url}@${_rev}"
+	fi
+}
+
+__boot ()
+{
+	co_opt=""
+	[ "${1}" = "-N" ] && co_opt="-N"
+	[ "${1}" = "-E" ] && co_opt="--depth empty"
+	if [ ! -d "${3}" ] ; then
+		_msg b Creating ${2} "(${3})"
+		cd ${SRC_ROOT}
+		_root="`echo ${3} | sed -e \"s,^${SRC_ROOT}/,${4}/,\"`"
+		__urlcheck -y "${_root}"
+		__root="`echo ${3} | sed -e \"s,^${SRC_ROOT}/,,\"`"
+		svn co ${co_opt} "${_root}" "${__root}" || _exit 15 SVN_FAILED checkout
+	fi
+}
+
+_boot ()
+{
+	if [ ! -d "${SRC_ROOT}" ] ; then
+		_msg b Creating SRC_ROOT "(${SRC_ROOT})"
+		mkdir -p "${SRC_ROOT}" || _exit 18 MKDIR_FAILED create "${SRC_ROOT}"
+	fi
+	__boot -N BUILDER_ROOT     "${BUILDER_ROOT}"     "${SVN_ROOT}"
+	__boot -R PACKAGING_ROOT   "${PACKAGING_ROOT}"   "${SVN_ROOT}"
+	__boot -N PROJECT_ROOT     "${PROJECT_ROOT}"     "${SVN_ROOT}"
+	__boot -R TEMPLATE_ROOT    "${TEMPLATE_ROOT}"    "${SVN_ROOT}"
+	__boot -N HST_ROOT         "${HST_ROOT}"         "${SVN_ROOT}"
+	__boot -N LOG_ROOT         "${LOG_ROOT}"         "${SVN_ROOT}"
+	__boot -N SCR_ROOT         "${SCR_ROOT}"         "${SVN_ROOT}"
+	__boot -E MNF_ROOT         "${MNF_ROOT}"         "${SVN_ROOT}"
+
+	__boot -E MNF_ROOT/archive "${MNF_ROOT}/archive" "${SVN_ROOT}"
+
+	_archive="`echo ${MNF_ROOT}/archive | sed -e \"s,^${SRC_ROOT}/,${SVN_ROOT}/,\"`"
+	_archive_list="`svn list ${_archive} | grep '/$' | sed -e 's,/$,,'`"
+	for _a in ${_archive_list} ; do
+		__boot -E MNF_ROOT/archive/${_a} "${MNF_ROOT}/archive/${_a}" "${SVN_ROOT}"
+	done
+}
+
+_urlcheck ()
+{
+	if [ "${SVN_CURRENT}" = "" ] ; then
+		_svnrev="HEAD"
+	else
+		_svnrev="${SVN_CURRENT}"
+	fi
+	_msg b "Validating URL Structure (${URL}@${_svnrev})"
+	__urlcheck -y "${URL}" ${_svnrev}
+	__urlcheck -y "${URL}/features" ${_svnrev}
+	__urlcheck -y "${URL}/plugins" ${_svnrev}
+	__urlcheck -y "${URL}/build-overrides.xml" ${_svnrev}
+	__urlcheck -y "${URL}/build.xml" ${_svnrev}
+	__urlcheck -n "${URL}/build-artifacts" ${_svnrev}
+	__urlcheck -n "${URL}/featureVersions.properties" ${_svnrev}
+	if [ ${kVflag} -eq 0 ] ; then
+		__urlcheck -n "${URL}/pluginVersions.properties" ${_svnrev}
+	fi
+	_msg e "URL Structure OK (${URL}@${_svnrev})"
+}
+
+_dircheck ()
+{
+	if [ "${1}" = "-y" ] ; then
+		_yn=1
+		_exists="MUST EXIST"
+	else
+		_yn=0
+		_exists="MUST NOT EXIST"
+	fi
+	_ftype="${2}"
+	_fpath="${3}"
+	_ermtag WORKING_COPY ${PFWC}
+	case ${_ftype} in
+	-d)
+		_file="Directory"
+		;;
+	-f)
+		_file="Regular File"
+		;;
+	esac
+	_msg b ${_file} ${_fpath} ${_exists}
+	if [ ${_yn} -eq 1 ] ; then
+		[ ${_ftype} ${_fpath} ] || _exit 17 INVALID_DIRECTORY "${_file}" ${_fpath}
+	else
+		[ ${_ftype} ${_fpath} ] && _exit 17 INVALID_DIRECTORY "${_file}" ${_fpath}
+	fi
+}
+
+_pfwccheck ()
+{
+	_msg b "Validating Pre-Flight Working Copy Directory Structure (${PFWC})"
+	_dircheck -y -d "${PFWC}"
+	_dircheck -y -d "${PFWC}/features"
+	_dircheck -y -d "${PFWC}/plugins"
+	_dircheck -y -f "${PFWC}/build-overrides.xml"
+	_dircheck -y -f "${PFWC}/build.xml"
+	_dircheck -n -d "${PFWC}/build-artifacts"
+	_dircheck -n -f "${PFWC}/featureVersions.properties"
+	_dircheck -n -f "${PFWC}/pluginVersions.properties"
+	_msg e "Pre-Flight Working Copy Directory Structure OK (${PFWC})"
+}
+
+_ermtag ()
+{
+	__tag="${1}"
+	shift 1
+	[ -f ${_ERMTAG_LOG} ] || : > ${_ERMTAG_LOG}
+	echo "${__tag}=\"${*}\"" >> ${_ERMTAG_LOG}
+}
+
+_getversion ()
+{
+	_msg b Getting Main FEATURE Version
+	UNIT_CV="`grep \"version[ 	]*=.*\.qualifier\" \
+		\"${UNIT_WC}/features/${FEATURE}/feature.xml\" | \
+		head -1 | sed -e 's,[ 	],,g' | \
+		sed -e 's,^.*version=\",,' | cut -d'.' -f1-3`"
+	_ermtag ACTUAL_VERSION ${UNIT_CV}
+	[ "${UNIT_CV}" = "" ] && _exit 23 INVALID_VERSION "Main FEATURE Version"
+	_msg e "Got Main FEATURE Version (${UNIT_CV})"
+}
+
+_versioncheck ()
+{
+	_msg b "Validating Main FEATURE Version (${UNIT_CV})"
+	[ "${UNIT_CV}" != "${UNITVERSION}" ] && \
+		_exit 8 INVALID_VERSION "UNITVERSION value" "${UNIT_CV}" "${UNITVERSION}"
+	_msg e "Main FEATURE Version OK (${UNIT_CV})"
+}
+
+_bncheck ()
+{
+	_msg b "Validating Main FEATURE Build Number (${UNIT_CBN})"
+	[ "`expr ${UNIT_CBN} + 0 2>${DEVNULL}`" != "`expr ${UNITBN} + 0 2>${DEVNULL}`" ] && \
+		_exit 8 INVALID_BUILD_NO "UNITBN value" "${UNIT_CBN}" "${UNITBN}"
+	_msg e "Main FEATURE Build Number OK (${UNIT_CBN})"
+}
+
+_bqcheck ()
+{
+	_msg b "Validating Main FEATURE Build Qualifier (${UNIT_CBQ})"
+	[ "${UNIT_CBQ}" != "${UNITBQ}" ] && \
+		_exit 8 INVALID_BUILD_QUAL "UNITBQ value" "${UNIT_CBQ}" "${UNITBQ}"
+	_msg e "Main FEATURE Build Qualifier OK (${UNIT_CBQ})"
+}
+
+_mncheck ()
+{
+	_msg b "Validating Manifest Name (${_MANIFEST}.txt)"
+	_validurl="`svn list -R ${_MNF_ROOT} 2>&1 | \
+		egrep "^${_MANIFEST}.txt$|/${_MANIFEST}.txt$" | head -1`"
+	if [ "${_validurl}" = "" ] ; then
+		_msg e Manifest Name OK
+	else
+		___MANIFEST="${_validurl}"
+		_msg e "Manifest Located: ${___MANIFEST}"
+		_exit 17 INVALID_MANIFEST "manifest name" "${_MANIFEST}.txt"
+	fi
+}
+
+_namecheck ()
+{
+	if [ "${UNITNAME}" = "" ] ; then
+		UNITNAME="`grep \"^${FEATURE}|\" ${BUILDER_CFG} | tail -1 | cut -d'|' -f2`"
+		if [ "${UNITNAME}" = "" ] ; then
+			if [ ${Iflag} -eq 1 ] ; then
+				UNITNAME="${FEATURE}"
+			else
+				_exit 21 INVALID_FEATURE_ID ${FEATURE} ${BUILDER_CFG}
+			fi
+		fi
+	fi
+	_UNITNAME="`echo \"${UNITNAME}\" | sed -e 's,[ /],_,g'`"
+	__UNITNAME="`echo \"${UNITNAME}\" | sed -e 's,/, - ,g'`"
+	export UNITNAME _UNITNAME __UNITNAME
+}
+
+_namecheckf ()
+{
+	[ "${UNITNAME}" = "" ] && return
+	_UNITNAME="`echo \"${UNITNAME}\" | sed -e 's,[ /],_,g'`"
+	__UNITNAME="`echo \"${UNITNAME}\" | sed -e 's,/, - ,g'`"
+	export _UNITNAME __UNITNAME
+}
+
+_featurecheck ()
+{
+	_msg b Validating Main FEATURE
+	_namecheck
+	[ -d "${UNIT_WC}/features/${FEATURE}" ] || _exit 17 INVALID_FEATURE_ID FEATURE "${FEATURE}"
+	_msg e "FEATURE OK (${FEATURE})"
+}
+
+_checkout_uwc ()
+{
+	_msg b Checking out Release Unit Working Copy at SVN Revision ${SVN_CURRENT}
+	echo "#### ${UNIT_WC}"
+	echo "####"
+	echo
+	cd ${SRC_ROOT}
+	svn co "${URL}@${SVN_CURRENT}" "${_UNIT_WC}" 2>&1 | tee ${CHECKOUT_LOG}
+	_msg e Release Unit Working Copy Checked out at SVN Revision ${SVN_CURRENT}
+}
+
+LOCALFILES="${USER}.xml featureVersions.properties pluginVersions.properties"
+
+_status_scr ()
+{
+	_msg b Checking Scripts and Configuration Files Status
+	echo "#### ${SCR_ROOT}"
+	echo "####"
+	echo
+	cd ${SCR_ROOT}
+	svn status --no-ignore 2>&1 | egrep "^[\?IAM]" | sed -e "s,^.      ,," > ${STATUS_LOG}
+	if [ -s ${STATUS_LOG} ] ; then
+		_msg b Removing Extra Files
+		cat ${STATUS_LOG} | while read f ; do
+			echo "${f}"
+			rm -rf "${f}"
+		done
+	fi
+	_msg e Scripts and Configuration Files Status OK
+}
+
+_status_uwc ()
+{
+	_msg b Checking Release Unit Working Copy Status
+	echo "#### ${UNIT_WC}"
+	echo "####"
+	echo
+	cd "${UNIT_WC}"
+	svn status --no-ignore 2>&1 | egrep "^[\?IAM]" | sed -e "s,^.      ,," > ${STATUS_LOG}
+	if [ ${kflag} -eq 1 ] ; then
+		egrep -v "`echo ${LOCALFILES} | sed -e 's, ,|,g'`" ${STATUS_LOG} > \
+			${STATUS_LOG}.tmp
+		mv ${STATUS_LOG}.tmp ${STATUS_LOG}
+	fi
+	if [ -s ${STATUS_LOG} ] ; then
+		_msg b Removing Extra Files
+		cat ${STATUS_LOG} | while read f ; do
+			echo "${f}"
+			rm -rf "${f}"
+		done
+	fi
+	_msg e Release Unit Working Copy OK
+}
+
+_status_twc ()
+{
+	_msg b Checking Assembly Template Working Copy Status
+	echo "#### ${TEMPLATE_ROOT}"
+	echo "####"
+	echo
+	cd ${TEMPLATE_ROOT}
+	svn status --no-ignore 2>&1 | egrep "^[\?IAM]" | sed -e "s,^.      ,," > ${STATUS_LOG}
+	if [ -s ${STATUS_LOG} ] ; then
+		_msg b Removing Extra Files
+		cat ${STATUS_LOG} | while read f ; do
+			echo "${f}"
+			rm -rf "${f}"
+		done
+	fi
+	_msg e Assembly Template Working Copy OK
+}
+
+_status_awc ()
+{
+	_msg b Checking Assembly Project Working Copy Status
+	echo "#### ${ASSEMBLY_WC}"
+	echo "####"
+	echo
+	cd ${ASSEMBLY_WC}
+	svn status --no-ignore 2>&1 | egrep "^[\?IAM]" | sed -e "s,^.      ,," > ${STATUS_LOG}
+	if [ -s ${STATUS_LOG} ] ; then
+		_msg b Removing Extra Files
+		cat ${STATUS_LOG} | while read f ; do
+			echo "${f}"
+			rm -rf "${f}"
+		done
+	fi
+	_msg e Assembly Project Working Copy OK
+}
+
+_status_pwc ()
+{
+	_msg b Checking Assembly Packaging Working Copy Status
+	echo "#### ${PACKAGING_ROOT}"
+	echo "####"
+	echo
+	cd ${PACKAGING_ROOT}
+	svn status --no-ignore 2>&1 | egrep "^[\?IAM]" | sed -e "s,^.      ,," > ${STATUS_LOG}
+	if [ -s ${STATUS_LOG} ] ; then
+		_msg b Removing Extra Files
+		cat ${STATUS_LOG} | while read f ; do
+			echo "${f}"
+			rm -rf "${f}"
+		done
+	fi
+	_msg e Assembly Packaging Working Copy OK
+}
+
+_update_scr ()
+{
+	_msg b Updating Scripts and Configuration Files
+	echo "#### ${SCR_ROOT}"
+	echo "####"
+	echo
+	cd ${SCR_ROOT}
+	svn update 2>&1 | tee ${UPDATE_LOG}
+	SREV="`grep \"At revision \" ${UPDATE_LOG} | cut -d' ' -f3 | cut -d'.' -f1`"
+	[ "${SREV}" = "" ] && \
+	SREV="`grep \"Updated to revision \" ${UPDATE_LOG} | cut -d' ' -f4 | cut -d'.' -f1`"
+	export SREV
+	_msg e Scripts and Configuration Files Updated at SVN Revision ${SREV}
+}
+
+_update_uwc ()
+{
+	_msg b Updating Release Unit Working Copy at SVN Revision ${SVN_CURRENT}
+	echo "#### ${UNIT_WC}"
+	echo "####"
+	echo
+	cd "${UNIT_WC}"
+	svn update -r ${SVN_CURRENT} 2>&1 | tee ${UPDATE_LOG}
+	_msg e Release Unit Working Copy Updated at SVN Revision ${SVN_CURRENT}
+}
+
+_update_twc ()
+{
+	_msg b Updating Assembly Template Working Copy
+	echo "#### ${TEMPLATE_ROOT}"
+	echo "####"
+	echo
+	cd ${TEMPLATE_ROOT}
+	svn update 2>&1 | tee ${UPDATE_LOG}
+	TREV="`grep \"At revision \" ${UPDATE_LOG} | cut -d' ' -f3 | cut -d'.' -f1`"
+	[ "${TREV}" = "" ] && \
+	TREV="`grep \"Updated to revision \" ${UPDATE_LOG} | cut -d' ' -f4 | cut -d'.' -f1`"
+	export TREV
+	_msg e Assembly Template Working Copy Updated at SVN Revision ${TREV}
+}
+
+_update_awc ()
+{
+	case ${1} in
+	dual)
+		_feature="${_FEATURE}_eclipse"
+		;;
+	p2)
+		_feature="${_FEATURE}_p2"
+		;;
+	*)
+		_feature="${_FEATURE}"
+		;;
+	esac
+
+	_msg b Updating Assembly Project Working Copy
+	echo "#### ${ASSEMBLY_WC}"
+	echo "#### ${PROJECT_ROOT}"
+	echo "#### ${_feature}"
+	echo
+	cd ${PROJECT_ROOT}
+	svn update ${_feature} 2>&1
+	cp -p ${TEMPLATE_ROOT}/build.xml ${_feature}
+	_msg b Updating Assembly Project build.xml from "${TEMPLATE_ROOT}"
+	cd ${_feature}
+	svn commit -m "${__MANIFEST}" build.xml || _exit 15 SVN_FAILED commit
+	cd ${PROJECT_ROOT}
+	svn update ${_feature} 2>&1 | tee ${UPDATE_LOG}
+	echo
+	IREV="`grep \"At revision \" ${UPDATE_LOG} | cut -d' ' -f3 | cut -d'.' -f1`"
+	[ "${IREV}" = "" ] && \
+	IREV="`grep \"Updated to revision \" ${UPDATE_LOG} | cut -d' ' -f4 | cut -d'.' -f1`"
+	export IREV
+	_msg e Assembly Project Working Copy Updated at SVN Revision ${IREV}
+}
+
+_update_pwc ()
+{
+	_msg b Updating Assembly Packaging Working Copy
+	echo "#### ${PACKAGING_ROOT}"
+	echo "####"
+	echo
+	cd ${PACKAGING_ROOT}
+	svn update 2>&1 | tee ${UPDATE_LOG}
+	PREV="`grep \"At revision \" ${UPDATE_LOG} | cut -d' ' -f3 | cut -d'.' -f1`"
+	[ "${PREV}" = "" ] && \
+	PREV="`grep \"Updated to revision \" ${UPDATE_LOG} | cut -d' ' -f4 | cut -d'.' -f1`"
+	export PREV
+	_msg e Assembly Packaging Working Copy Updated at SVN Revision ${PREV}
+}
+
+_update_tibco ()
+{
+	if [ -d ${TIBCO_LOGS} ] ; then
+		_msg b "Updating Public Log Files: <${TIBCO_LOGS}>"
+		cd ${TIBCO_LOGS}
+		svn update 2>&1
+	else
+		_msg b "WARNING!!! Cannot Locate Public Log Files: <${TIBCO_LOGS}>"
+	fi
+	if [ -d ${TIBCO_HISTORY} ] ; then
+		_msg b "Updating Public History Files: <${TIBCO_HISTORY}>"
+		cd ${TIBCO_HISTORY}
+		svn update 2>&1
+	else
+		_msg b "WARNING!!! Cannot Locate Public History Files: <${TIBCO_HISTORY}>"
+	fi
+}
+
+_savelf ()
+{
+
+	if [ "${UNITNAME}" != "" ] ; then
+		_name="${UNITNAME}"
+	else
+		_name="${FEATURE}"
+	fi
+	_msg b Saving Local Files for \"${_name}\"
+	_pwd="`pwd`"
+	[ -d ${TMP_DIR} ] || mkdir -p ${TMP_DIR}
+	cd "${UNIT_WC}"
+	for f in ${LOCALFILES} ; do
+		[ -f ${f} ] && \
+		echo "mv ${f} ${TMP_DIR}/${f}" && \
+		mv ${f} ${TMP_DIR}/${f}
+	done
+	cd ${_pwd}
+	_msg e Local Files for \"${_name}\" saved
+}
+
+_restorelf ()
+{
+	if [ "${UNITNAME}" != "" ] ; then
+		_name="${UNITNAME}"
+	else
+		_name="${FEATURE}"
+	fi
+	_msg b Restoring Local Files for \"${_name}\"
+	_pwd="`pwd`"
+	cd "${UNIT_WC}"
+	for f in ${LOCALFILES} ; do
+		[ -f ${TMP_DIR}/${f} ] && \
+		echo "mv ${TMP_DIR}/${f} ${f}" && \
+		mv ${TMP_DIR}/${f} ${f}
+	done
+	cd ${_pwd}
+	_msg e Local Files for \"${_name}\" restored
+}
+
+_antopts ()
+{
+	_msg b Setting Ant Options for ${BUILD_TYPE} Build
+	ANT_OPTS="-Dautobuild.dir.user=${_TIBCO_BUILD}"
+	ANT_OPTS="${ANT_OPTS} -Dautobuild.dir.candidates=${CANDIDATES_ROOT}"
+	ANT_OPTS="${ANT_OPTS} -Dautobuild.release.tags.working-copy.base=${SRC_ROOT}"
+	export ANT_OPTS
+	if [ ${Tflag} -eq 1 ] ; then
+		ANT_OPTS="${ANT_OPTS} -Dpublish.target.folder=${PUBLISH_ROOT}"
+	else
+		if [ ${Iflag} -eq 1 ] ; then
+			ANT_OPTS="${ANT_OPTS} -Dintegration-build=true"
+			ANT_OPTS="${ANT_OPTS} -Dpublish.target.folder=${INTEG_ROOT}"
+		else
+			ANT_OPTS="${ANT_OPTS} -Dofficial-release-build=true"
+			ANT_OPTS="${ANT_OPTS} -Dpublish.target.folder=${PUBLISH_ROOT}"
+		fi
+	fi
+	echo "####"
+	for opt in ${ANT_OPTS} ; do
+		echo "#### ${opt}"
+	done
+	echo "####"
+	_msg e Ant Options Set
+}
+
+_asmarchive ()
+{
+	if [ ${hflag} -eq 1 ] ; then
+		pkg_root="`cd ${PKG_ROOT}/hibernate ; /bin/pwd`"
+		_pkg_root="`cd ${PKG_ROOT} ; /bin/pwd`"
+	else
+		pkg_root="`cd ${_TIBCO_BUILD}/pkg ; /bin/pwd`"
+		_pkg_root="/assemblies"
+	fi
+	__pkg_root="${DIST_ROOT}/package"
+	export pkg_root _pkg_root __pkg_root
+
+	ISMP_ASSEMBLY_ARCHIVE="${pkg_root}/ismp_assembly_archive"
+	_ISMP_ASSEMBLY_ARCHIVE="`echo ${ISMP_ASSEMBLY_ARCHIVE} | \
+		sed -e \"s,^${_pkg_root}/,${__pkg_root}/,\"`"
+	export ISMP_ASSEMBLY_ARCHIVE _ISMP_ASSEMBLY_ARCHIVE
+
+	ZIP_ASSEMBLY_ARCHIVE="${pkg_root}/zip_assembly_archive"
+	_ZIP_ASSEMBLY_ARCHIVE="`echo ${ZIP_ASSEMBLY_ARCHIVE} | \
+		sed -e \"s,^${_pkg_root}/,${__pkg_root}/,\"`"
+	export ZIP_ASSEMBLY_ARCHIVE _ZIP_ASSEMBLY_ARCHIVE
+
+	ISMP_ASSEMBLY_ARCHIVE_TEST="${ISMP_ASSEMBLY_ARCHIVE}_test"
+	_ISMP_ASSEMBLY_ARCHIVE_TEST="`echo ${ISMP_ASSEMBLY_ARCHIVE_TEST} | \
+		sed -e \"s,^${_pkg_root}/,${__pkg_root}/,\"`"
+	export ISMP_ASSEMBLY_ARCHIVE_TEST _ISMP_ASSEMBLY_ARCHIVE_TEST
+
+	ZIP_ASSEMBLY_ARCHIVE_TEST="${ZIP_ASSEMBLY_ARCHIVE}_test"
+	_ZIP_ASSEMBLY_ARCHIVE_TEST="`echo ${ZIP_ASSEMBLY_ARCHIVE_TEST} | \
+		sed -e \"s,^${_pkg_root}/,${__pkg_root}/,\"`"
+	export ZIP_ASSEMBLY_ARCHIVE_TEST _ZIP_ASSEMBLY_ARCHIVE_TEST
+
+	ISMP_ASSEMBLY_ARCHIVE_INTEG="${ISMP_ASSEMBLY_ARCHIVE}_integ"
+	_ISMP_ASSEMBLY_ARCHIVE_INTEG="`echo ${ISMP_ASSEMBLY_ARCHIVE_INTEG} | \
+		sed -e \"s,^${_pkg_root}/,${__pkg_root}/,\"`"
+	export ISMP_ASSEMBLY_ARCHIVE_INTEG _ISMP_ASSEMBLY_ARCHIVE_INTEG
+
+	ZIP_ASSEMBLY_ARCHIVE_INTEG="${ZIP_ASSEMBLY_ARCHIVE}_integ"
+	_ZIP_ASSEMBLY_ARCHIVE_INTEG="`echo ${ZIP_ASSEMBLY_ARCHIVE_INTEG} | \
+		sed -e \"s,^${_pkg_root}/,${__pkg_root}/,\"`"
+	export ZIP_ASSEMBLY_ARCHIVE_INTEG _ZIP_ASSEMBLY_ARCHIVE_INTEG
+}
+
+_asmopts ()
+{
+	_msg b Setting Ant Options for ${BUILD_TYPE} Assembly
+
+	if [ ${Iflag} -eq 1 ] ; then
+		ISMP_ASM_ARCHIVE="${ISMP_ASSEMBLY_ARCHIVE_INTEG}"
+		_ISMP_ASM_ARCHIVE="${_ISMP_ASSEMBLY_ARCHIVE_INTEG}"
+		ZIP_ASM_ARCHIVE="${ZIP_ASSEMBLY_ARCHIVE_INTEG}"
+		_ZIP_ASM_ARCHIVE="${_ZIP_ASSEMBLY_ARCHIVE_INTEG}"
+	else
+		if [ ${Tflag} -eq 1 ] ; then
+			ISMP_ASM_ARCHIVE="${ISMP_ASSEMBLY_ARCHIVE_TEST}"
+			_ISMP_ASM_ARCHIVE="${_ISMP_ASSEMBLY_ARCHIVE_TEST}"
+			ZIP_ASM_ARCHIVE="${ZIP_ASSEMBLY_ARCHIVE_TEST}"
+			_ZIP_ASM_ARCHIVE="${_ZIP_ASSEMBLY_ARCHIVE_TEST}"
+		else
+			ISMP_ASM_ARCHIVE="${ISMP_ASSEMBLY_ARCHIVE}"
+			_ISMP_ASM_ARCHIVE="${_ISMP_ASSEMBLY_ARCHIVE}"
+			ZIP_ASM_ARCHIVE="${ZIP_ASSEMBLY_ARCHIVE}"
+			_ZIP_ASM_ARCHIVE="${_ZIP_ASSEMBLY_ARCHIVE}"
+		fi
+	fi
+	export ISMP_ASM_ARCHIVE _ISMP_ASM_ARCHIVE ZIP_ASM_ARCHIVE _ZIP_ASM_ARCHIVE
+
+	ASM_OPTS="-DASSEMBLY_ARCHIVE=${ISMP_ASM_ARCHIVE}"
+	ASM_OPTS="${ASM_OPTS} -DZIPFILE_ASSEMBLY_ARCHIVE=${ZIP_ASM_ARCHIVE}"
+
+	ISMP_GALLERY="${_TIBCO_BUILD}/ismp_assembly_gallery"
+	ZIP_GALLERY="${_TIBCO_BUILD}/zip_assembly_gallery"
+	export ISMP_GALLERY ZIP_GALLERY
+
+	ASM_OPTS="${ASM_OPTS} -DASSEMBLY_GALLERY=${ISMP_GALLERY}"
+	ASM_OPTS="${ASM_OPTS} -DZIPFILE_ASSEMBLY_GALLERY=${ZIP_GALLERY}"
+
+	if [ ${zflag} -eq 1 ] ; then
+		ASM_OPTS="${ASM_OPTS} build-zip-file-only"
+	else
+		if [ ${iflag} -eq 1 ] ; then
+			ASM_OPTS="${ASM_OPTS} build-ismp-file-only"
+		else
+			if [ ${izflag} -eq 1 ] ; then
+				ASM_OPTS="${ASM_OPTS} build-ismp-zip-file"
+			fi
+		fi
+	fi
+	export ASM_OPTS
+
+	echo "####"
+	for opt in ${ASM_OPTS} ; do
+		echo "#### ${opt}"
+	done
+	echo "####"
+	_msg e Ant Options Set
+}
+
+_java_classes ()
+{
+	_msg b Retrieving Actual Java Classes
+	JAVA_CLASSES="`grep '\[echo\] Java: ' ${_BUILDER_LOG} | cut -d':' -f2- | cut -d' ' -f2`"
+	export JAVA_CLASSES
+	_msg e Actual Java Classes: ${JAVA_CLASSES}
+}
+
+_build ()
+{
+	cd "${UNIT_WC}"
+	[ ${kflag} -eq 1 ] && _savelf
+	if [ ${kVflag} -eq 0 ] ; then
+		clean_t="conf-clean"
+	else
+		clean_t="remove-configuration"
+	fi
+	_msg b "Cleaning Configuration (${clean_t}) for \"${UNITNAME}\""
+	ant ${ANT_OPTS} ${clean_t} || _exit 9 BUILD_FAILED "${UNITNAME}"
+	_msg e "Configuration Cleaned"
+
+	_java_classes
+
+	[ ${kflag} -eq 1 ] && _restorelf
+	_msg b Building Release Unit \"${UNITNAME}\"
+	ant ${ANT_OPTS}
+	_ant=${?}
+	[ ${_ant} -eq 0 ] || _exit 10 BUILD_FAILED "${UNITNAME}"
+	if [ "${more_ant_tasks}" != "" ] ; then
+		_msg b Running Additional Ant Tasks \(${more_ant_tasks}\) for \"${UNITNAME}\"
+		ant ${ANT_OPTS} ${more_ant_tasks} || _exit 10 BUILD_FAILED "${UNITNAME}"
+	fi
+	_msg e Build Completed
+}
+
+_rmasm ()
+{
+	[ -f ${_ASMLIST_LOG} ] || return
+	_msg b Deleting Assemblies
+	echo
+	for asm in `cat ${_ASMLIST_LOG}` ; do
+		[ -f ${asm} ] || continue
+		ls -l ${asm}
+		/bin/rm -f ${asm}
+	done
+	/bin/rm -f ${_ASMLIST_LOG}
+	echo
+	_msg e Assemblies Deleted
+}
+
+_rmtag ()
+{
+	if [ "${_TAG_URL}" != "" ] ; then
+		__url="`svn info \"${_TAG_URL}\" 2>&1 | head -1`"
+		case ${SVN_VERSION} in
+		1.8.10)
+			__url="`svn info \"${_TAG_URL}\" 2>&1 | tail -1`"
+			_invalidurl="Could not display info"
+			_validurl="`echo ${__url} | grep \"${_invalidurl}\" | cut -d' ' -f3-6`"
+			;;
+		1.6.9|*)
+			__url="`svn info \"${_TAG_URL}\" 2>&1 | head -1`"
+			_invalidurl="Not a valid URL"
+			_validurl="`echo ${__url} | grep \"${_invalidurl}\" | cut -d'(' -f2 | cut -d')' -f1`"
+			;;
+		esac
+		if [ "${_validurl}" != "${_invalidurl}" ] ; then
+			_msg b Deleting Tag \"${_TAG_URL}\"
+			svn delete -m "${UNITNAME}: TAG_FAILED" \"${_TAG_URL}\" || \
+				_exit 15 SVN_FAILED delete
+		fi
+	fi
+	[ "${TAG_LOG}" = "" ] && return
+	[ -f "${TAG_LOG}" ] || return
+	_tco="\[echo\] checking out the tag location"
+	TAG_WC="`grep \"${_tco} \" ${TAG_LOG} | sed -e \"s,^.*${_tco} ,,\"`"
+	export TAG_WC
+	[ "${TAG_WC}" = "" ] && return
+	if [ -d "${TAG_WC}" ] ; then
+		_msg b Deleting Tag Working Copy \"${TAG_WC}\"
+		/bin/rm -rf ${TAG_WC}
+	fi
+}
+
+_autotag ()
+{
+	__boot -N TAG_ROOT "${TAG_ROOT}" "${SVN_SRC_ROOT}"
+	cd "${UNIT_WC}"
+	(
+	_msg b Tagging Release Unit \"${UNITNAME}\"
+	ant ${ANT_OPTS} tag
+	_exit=${?}
+	[ ${_exit} -eq 0 ] && _msg e Tagging Completed
+	echo "_exit=${_exit}"
+	) 2>&1 | tee ${TAG_LOG}
+	tag_ok="`tail -1 ${TAG_LOG} | cut -d'=' -f2`"
+	TAG_URL="`grep 'copying http' ${TAG_LOG} | grep ${SVN_CURRENT} | head -1 | \
+		sed -e 's,.* to ,,'`"
+	_TAG_URL="`echo ${TAG_URL} | sed -e \"s,-${UNIT_CV}.${UNIT_CBN}/.*$,-${UNIT_CV}.${UNIT_CBN},\"`"
+	export TAG_URL _TAG_URL
+	if [ "${_TAG_URL}" != "" ] ; then
+		_tag_url="`basename ${_TAG_URL}`"
+		tag_pattern="`grep '\[mkdir\] Created dir:' ${TAG_LOG} | grep /${_tag_url}/ | \
+			head -1 | sed -e \"s,.*/${_tag_url}/,,\"`"
+		__TAG_URL="${_TAG_URL}/${tag_pattern}"
+		export __TAG_URL
+	fi
+	[ ${tag_ok} -ne 0 ] && _exit 12 TAG_FAILED "${UNITNAME}"
+	SVN_TAG="`grep Committed ${TAG_LOG} | tail -1 | sed -e 's,^.* revision ,,' -e 's,\.$,,'`"
+	export SVN_TAG
+	/bin/rm -f ${TAG_LOG}
+}
+
+_pubcheck ()
+{
+	case "${FEATURE}" in
+	"com.tibco.tibcoxml.tra"|"com.tibco.gxml.tra")
+		pflag=0
+		;;
+	*)
+		:
+		;;
+	esac
+}
+
+_publish ()
+{
+	cd "${UNIT_WC}"
+	[ ${plflag} -eq 1 ] && _lock publish
+	_msg b Publishing Release Unit \"${UNITNAME}\"
+	ant ${ANT_OPTS} publish
+	_exit=${?}
+	[ ${plflag} -eq 1 ] && _unlock publish
+	if [ ${_exit} -eq 0 ] ; then
+		_msg e Publishing Completed
+		ISPUBLISHED="P"
+	else
+		_exit 16 PUBLISH_FAILED "${UNITNAME}"
+	fi
+}
+
+ECUSER_PROP="/myJob/username"
+export ECUSER_PROP
+
+_ecuser ()
+{
+	[ "${ECUSER}" != "UNKNOWN" ] && return
+	[ "${ECJOB}" = "" ] && ECUSER="${USER}" && return
+	ECUSER="`ectool getProperty ${ECUSER_PROP} --jobId ${ECJOB}`"
+	export ECUSER
+}
+
+ECEMAIL_PROP="/myJob/useremail"
+export ECEMAIL_PROP
+
+_ecemail ()
+{
+	[ "${ECEMAIL}" != "UNKNOWN" ] && return
+	[ "${ECJOB}" = "" ] && ECEMAIL="${USER}" && return
+	ECEMAIL="`ectool getProperty ${ECEMAIL} --jobId ${ECJOB}`"
+	export ECEMAIL
+}
+
+_builder_hst ()
+{
+	_msg b Updating ${BUILD_TYPE} Build History File ${HFILE}
+	cd ${HST_ROOT}
+	svn update "`basename ${HFILE}`"
+	cp -p ${HFILE} ${_HFILE}
+	echo "${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${UNIT_DSTAMP}|${SVN_CURRENT}|${SVN_TAG}|${ISPUBLISHED}|${ECCR}|${UNAME_N}|${USER}|${ECUSER}|${ECEMAIL}|${ECJOB}|${REQUEST_ID}" | \
+		tee -a ${_HFILE} | tee -a ${LOGD}/`basename ${HFILE}`
+}
+
+_metrics_upd ()
+{
+	_msg b Updating ${BUILD_TYPE} Build Metrics History File ${MFILE}
+	cd ${HST_ROOT}
+	svn update "`basename ${MFILE}`"
+	cp -p ${MFILE} ${_MFILE}
+}
+
+_metrics_hst ()
+{
+	_metrics_upd
+	echo "${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${UNIT_DSTAMP}|${URL}|${SVN_CURRENT}|${UNIT_FNO}|${UNIT_DNO}|${UNIT_LNO}|${UNIT_JAVAFNO}|${UNIT_JAVALNO}|${UNIT_FADD}|${UNIT_FDEL}|${UNIT_FMOD}|${UNIT_LADD}|${UNIT_LDEL}" | \
+		tee -a ${_MFILE} | tee -a ${LOGD}/`basename ${MFILE}`
+}
+
+_src_hst ()
+{
+	_msg b Updating ${BUILD_TYPE} Build Source History File ${_SFILE}
+	echo "${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${UNIT_DSTAMP}|${URL}|${SVN_CURRENT}|${USER}|${JAVACSOURCE}|${JDK_VERSION}|${JAVA_CLASSES}|${TOOLS_BPV}|${TOOLS_NAME}" | \
+		tee -a ${_SFILE} | tee -a ${LOGD}/`basename ${SFILE}`
+}
+
+_tag_hst ()
+{
+	_msg b Updating ${BUILD_TYPE} Build Tag History File ${_TAG_HST}
+	echo "${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${UNIT_DSTAMP}|${__TAG_URL}|${SVN_TAG}|${USER}" | \
+		tee -a ${_TAG_HST} | tee -a ${LOGD}/`basename ${TAG_HST}`
+}
+
+_changelog ()
+{
+	_URL="`svn info \"${UNIT_WC}\" | grep '^URL: ' | cut -d' ' -f2`"
+	export _URL
+
+	# Previous Release Unit Version:
+	UNIT_PV=""
+
+	# Current Release Unit Version:
+	UNIT_CV=""
+
+	# Previous Build Number:
+	UNIT_PBN=""
+
+	# Current Build Number:
+	_UNIT_CBN=""
+
+	# Previous Build Date:
+	UNIT_PBD=""
+
+	# Current Build Date:
+	UNIT_CBD=""
+
+	# Previous Svn Revision:
+	UNIT_PSR=""
+
+	# Current Svn Revision:
+	UNIT_CSR=""
+
+	__JDK_VERSION="1.4.2_06"
+
+	JDK_VERSION="`java -version 2>&1 | head -1 | cut -d'\"' -f2`"
+
+	JDK_HOME="${EXTERNAL}/jdk/${__JDK_VERSION}"
+
+	_path=""
+
+	if [ "${JDK_VERSION}" != "${__JDK_VERSION}" ] ; then
+		_path="${PATH}"
+		PATH="${JDK_HOME}/${PORT}/bin:${PATH}"
+		export PATH
+	fi
+
+	_msg b Retrieving Information for ChangeLog Files
+
+	if [ "${UNIT_PV}" = "" ] ; then
+		_msg b Looking for Previous Version in Builder History File \"${_HFILE}\"
+		UNIT_PV="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -2 | head -1 | cut -d'|' -f2 | cut -d'.' -f1-3`"
+		[ "${UNIT_PV}" != "" ] && \
+		_msg e Previous Version FOUND: \"${UNIT_PV}\"
+	fi
+
+	if [ "${UNIT_CV}" = "" ] ; then
+		_msg b Looking for Current Version in Builder History File \"${_HFILE}\"
+		UNIT_CV="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -1 | cut -d'|' -f2 | cut -d'.' -f1-3`"
+		[ "${UNIT_CV}" != "" ] && \
+		_msg e Current Version FOUND: \"${UNIT_CV}\"
+	fi
+
+	if [ "${UNIT_PBN}" = "" ] ; then
+		_msg b Looking for Previous Build Number in Builder History File \"${_HFILE}\"
+		UNIT_PBN="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -2 | head -1 | cut -d'|' -f2 | cut -d'.' -f4`"
+		[ "${UNIT_PBN}" != "" ] && \
+		_msg e Previous Build Number FOUND: \"${UNIT_PBN}\"
+	fi
+
+	if [ "${_UNIT_CBN}" = "" ] ; then
+		_msg b Looking for Current Build Number in Builder History File \"${_HFILE}\"
+		_UNIT_CBN="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -1 | cut -d'|' -f2 | cut -d'.' -f4`"
+		[ "${_UNIT_CBN}" != "" ] && \
+		_msg e Current Build Number FOUND: \"${_UNIT_CBN}\"
+	fi
+
+	if [ "${UNIT_PBD}" = "" ] ; then
+		_msg b Looking for Previous Build Date in Builder History File \"${_HFILE}\"
+		UNIT_PBD="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -2 | head -1 | cut -d'|' -f4`"
+		[ "${UNIT_PBD}" != "" ] && \
+		_msg e Previous Build Date FOUND: \"${UNIT_PBD}\"
+	fi
+
+	if [ "${UNIT_CBD}" = "" ] ; then
+		_msg b Looking for Current Build Date in Builder History File \"${_HFILE}\"
+		UNIT_CBD="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -1 | cut -d'|' -f4`"
+		[ "${UNIT_CBD}" != "" ] && \
+		_msg e Current Build Date FOUND: \"${UNIT_CBD}\"
+	fi
+
+	if [ "${UNIT_PSR}" = "" ] ; then
+		_msg b Looking for Previous Svn Revision in Builder History File \"${_HFILE}\"
+		UNIT_PSR="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -2 | head -1 | cut -d'|' -f5`"
+		[ "${UNIT_PSR}" != "" ] && \
+		_msg e Previous Svn Revision FOUND: \"${UNIT_PSR}\"
+	fi
+
+	if [ "${UNIT_CSR}" = "" ] ; then
+		_msg b Looking for Current Svn Revision in Builder History File \"${_HFILE}\"
+		UNIT_CSR="`grep \"^${__UNITNAME}|\" ${_HFILE} | \
+			tail -1 | cut -d'|' -f5`"
+		[ "${UNIT_CSR}" != "" ] && \
+		_msg e current Svn Revision FOUND: \"${UNIT_CSR}\"
+	fi
+
+	_msg b Generating ChangeLog files
+
+	echo "#### Release Unit Name         = <${UNITNAME}>"
+	echo "#### Feature ID                = <${FEATURE}>"
+	echo "####"
+	echo "#### Build History Log         = <${_HFILE}>"
+	echo "####"
+	echo "#### ChangeLog Location        = <${LOGD}>"
+	echo "####"
+	echo "#### Previous Version          = <${UNIT_PV}>"
+	echo "#### Previous Build Number     = <${UNIT_PBN}>"
+	echo "#### Previous Build Date       = <${UNIT_PBD}>"
+	echo "#### Previous SVN Revision     = <${UNIT_PSR}>"
+	echo "####"
+	echo "#### Current  Version          = <${UNIT_CV}>"
+	echo "#### Current  Build Number     = <${_UNIT_CBN}>"
+	echo "#### Current  Build Date       = <${UNIT_CBD}>"
+	echo "#### Current  SVN Revision     = <${UNIT_CSR}>"
+	echo "####"
+	echo
+
+	if [ "${UNIT_PBN}${_UNIT_CBN}" != "" ] ; then
+		CHANGELOG="ChangeLog-${_UNITNAME}-${UNIT_PV}.${UNIT_PBN}-${UNIT_CV}.${_UNIT_CBN}"
+	else
+		CHANGELOG="ChangeLog-${_UNITNAME}"
+	fi
+	CHANGELOG="${LOGD}/${CHANGELOG}"
+	_CHANGELOG="`echo ${CHANGELOG} | \
+		sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+	export CHANGELOG _CHANGELOG
+
+	cd "${UNIT_WC}"
+
+	_msg b Generating xml ChangeLog \"${CHANGELOG}.xml\"
+
+	if [ ${UNIT_PSR} -lt ${SVN_LATEST} ] ; then
+		_pbrev="`expr ${UNIT_PSR} + 1`"
+	else
+		_pbrev="${UNIT_PSR}"
+	fi
+
+	svn log -v --xml -r "${UNIT_CSR}":"${_pbrev}" > "${CHANGELOG}.xml"
+
+	# Subversion To ChangeLog:
+
+	SVN2CL_VERSION="0.9"
+
+	SVN2CL_HOME="${EXTERNAL}/svn2cl/${SVN2CL_VERSION}"
+
+	_xsl="${SVN2CL_HOME}/unixbuild/svn2cl"
+
+	_cp="${SVN2CL_HOME}/lib/xerces.jar:${SVN2CL_HOME}/lib/xalan.jar"
+
+	_jcmd="java -cp ${_cp} -Xms128m -Xmx256m -Xss512k org.apache.xalan.xslt.Process"
+
+	${_jcmd} -XML -IN "${CHANGELOG}.xml" -XSL ${_xsl}/changelog-xml-stylesheet-xml.xsl \
+		-OUT "${CHANGELOG}.xml.tmp"
+
+	mv "${CHANGELOG}.xml.tmp" "${CHANGELOG}.xml"
+
+	_msg b Generating txt ChangeLog \"${CHANGELOG}.txt\"
+
+	${_jcmd} -TEXT -IN "${CHANGELOG}.xml" -XSL ${_xsl}/changelog-xml-stylesheet-txt.xsl \
+		-PARAM modnameParam "${UNITNAME}" -OUT "${CHANGELOG}.txt"
+
+	( \
+		echo '#'
+		echo '# $'HeadURL'$ $'Revision'$ $'Date'$'
+		echo '#'
+		echo "# Copyright(c) 2005-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+		echo '#'
+		echo
+		cat "${CHANGELOG}.txt" | sed -e \
+		"s,Change Log for ${UNITNAME},Change Log for ${_URL},"
+	) > "${CHANGELOG}.txt.tmp"
+
+	head -7 "${CHANGELOG}.txt.tmp" > "${CHANGELOG}.txt.tmp1"
+
+	(echo "		Date range: from ${UNIT_PBD} (${UNIT_PV}.${UNIT_PBN} - ${UNIT_PSR})"
+	echo "			      to ${UNIT_CBD} (${UNIT_CV}.${_UNIT_CBN} - ${UNIT_CSR})"
+	) >> "${CHANGELOG}.txt.tmp1"
+
+	(
+	echo '8,$p'
+	echo q
+	) > "${CHANGELOG}.txt.tmp3"
+
+	ed - "${CHANGELOG}.txt.tmp" < "${CHANGELOG}.txt.tmp3" >> "${CHANGELOG}.txt.tmp1"
+
+	mv "${CHANGELOG}.txt.tmp1" "${CHANGELOG}.txt.tmp"
+
+	mv "${CHANGELOG}.txt.tmp" "${CHANGELOG}.txt"
+
+	_msg b Generating svn-based html ChangeLog \"${CHANGELOG}.svn.html\"
+
+	${_jcmd} -HTML -IN "${CHANGELOG}.xml" -XSL ${_xsl}/changelog-xml-stylesheet.xsl \
+		-PARAM modnameParam "${UNITNAME}" -OUT "${CHANGELOG}.html"
+
+	( \
+	echo '<!--'
+	echo '    $'HeadURL'$ $'Revision'$ $'Date'$'
+	echo
+	echo "    Copyright(c) 2005-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+	echo '-->'
+
+	_d="`echo ${_URL} | sed -e \"s,${SVN_SRC_ROOT}/,,\" | cut -d'/' -f-2`"
+	cat "${CHANGELOG}.html" | \
+	sed -e 's,http:,https:,g' \
+	    -e "s,${_WSVN_ROOT}/.*/${UNITNAME}/,${_URL}," \
+	    -e "s,${UNITNAME}</a>,${UNITNAME}</a></br>," \
+	    -e "s,${_WSVN_ROOT}/xml/trunk/,${SVN_SRC_ROOT}/${_d}/," \
+	    -e "s,${_WSVN_ROOT}/xml/branches/,${SVN_SRC_ROOT}/${_d}/," \
+	) > "${CHANGELOG}.html.tmp"
+
+	head -13 "${CHANGELOG}.html.tmp" > "${CHANGELOG}.html.tmp1"
+
+	(echo "		Date range: from ${UNIT_PBD} (${UNIT_PV}.${UNIT_PBN} - ${UNIT_PSR})</br>"
+	echo "			      to ${UNIT_CBD} (${UNIT_CV}.${_UNIT_CBN} - ${UNIT_CSR})"
+	) >> "${CHANGELOG}.html.tmp1"
+
+	(
+	echo '14,$p'
+	echo q
+	) > "${CHANGELOG}.html.tmp3"
+
+	ed - "${CHANGELOG}.html.tmp" < "${CHANGELOG}.html.tmp3" >> "${CHANGELOG}.html.tmp1"
+
+	sed -e 's,NO CHANGES #.*</a>$$,NO CHANGES,' \
+		-e 's,NO CHANGES,<center><b>NO CHANGES</b></center>,g' \
+		"${CHANGELOG}.html.tmp1" | grep -v '^<br>$$' > "${CHANGELOG}.html"
+
+	cat "${CHANGELOG}.html" | sed -e 's,?rev=,?p=,g' > "${CHANGELOG}.svn.html"
+
+	rm -f "${CHANGELOG}".*.tmp*
+
+	_msg b Generating wsvn-based html ChangeLog \"${CHANGELOG}.wsvn.html\"
+	
+	cat "${CHANGELOG}.html" | \
+	sed -e "s,${SVN_ROOT}/,${__WSVN_ROOT}/,g" > "${CHANGELOG}.wsvn.html"
+
+	rm -f "${CHANGELOG}.html"
+
+	[ "${_path}" != "" ] && PATH="${_path}"
+
+	_msg e ChangeLogs for "${UNITNAME}" Completed
+}
+
+_unit_list ()
+{
+	grep "^A    " ${CHECKOUT_LOG} | sed -e "s,^A    ,," > ${CHECKOUT_LOG}.list
+	cd ${SRC_ROOT}
+	cat ${CHECKOUT_LOG}.list | while read _f ; do
+		[ -d "${_f}" ] && echo "${_f}" >> ${CHECKOUT_LOG}.dlist
+		[ -f "${_f}" ] && echo "${_f}" >> ${CHECKOUT_LOG}.flist
+	done
+	grep "^A    " ${CHECKOUT_LOG} | grep "\.java$" | sed -e "s,^A    ,," \
+		> ${CHECKOUT_LOG}.java.list
+	cat ${CHECKOUT_LOG}.java.list | while read _f ; do
+		[ -f "${_f}" ] && echo "${_f}" >> ${CHECKOUT_LOG}.java.flist
+	done
+}
+
+_unit_fno ()
+{
+	if [ -f ${CHECKOUT_LOG}.flist ] ; then
+		UNIT_FNO="`cat ${CHECKOUT_LOG}.flist | wc -l`"
+	else
+		UNIT_FNO="0"
+	fi
+	UNIT_FNO="`expr ${UNIT_FNO} + 0`"
+	export UNIT_FNO
+}
+
+_unit_javafno ()
+{
+	if [ -f ${CHECKOUT_LOG}.java.flist ] ; then
+		UNIT_JAVAFNO="`cat ${CHECKOUT_LOG}.java.flist | wc -l`"
+	else
+		UNIT_JAVAFNO="0"
+	fi
+	UNIT_JAVAFNO="`expr ${UNIT_JAVAFNO} + 0`"
+	export UNIT_JAVAFNO
+}
+
+_unit_dno ()
+{
+	if [ -f ${CHECKOUT_LOG}.dlist ] ; then
+		UNIT_DNO="`cat ${CHECKOUT_LOG}.dlist | wc -l`"
+	else
+		UNIT_DNO="0"
+	fi
+	UNIT_DNO="`expr ${UNIT_DNO} + 0`"
+	export UNIT_DNO
+}
+
+_unit_lno ()
+{
+	UNIT_LNO=0
+	export UNIT_LNO
+	cd ${SRC_ROOT}
+	[ -f ${CHECKOUT_LOG}.flist ] || return
+	cat ${CHECKOUT_LOG}.flist | while read _f ; do
+		_lno=`cat "${_f}" | wc -l`
+		UNIT_LNO=`expr ${UNIT_LNO} + ${_lno}`
+		echo "${UNIT_LNO}" > ${CHECKOUT_LOG}.lno
+	done
+	UNIT_LNO="`cat ${CHECKOUT_LOG}.lno`"
+	/bin/rm -f ${CHECKOUT_LOG}.lno
+}
+
+_unit_javalno ()
+{
+	UNIT_JAVALNO=0
+	export UNIT_JAVALNO
+	cd ${SRC_ROOT}
+	[ -f ${CHECKOUT_LOG}.java.flist ] || return
+	cat ${CHECKOUT_LOG}.java.flist | while read _f ; do
+		_lno=`cat "${_f}" | wc -l`
+		UNIT_JAVALNO=`expr ${UNIT_JAVALNO} + ${_lno}`
+		echo "${UNIT_JAVALNO}" > ${CHECKOUT_LOG}.lno
+	done
+	UNIT_JAVALNO="`cat ${CHECKOUT_LOG}.lno`"
+	/bin/rm -f ${CHECKOUT_LOG}.lno
+}
+
+_unit_diff ()
+{
+	if [ "${UNIT_PURL}@${UNIT_PSR}" = "${URL}@${SVN_CURRENT}" ] ; then
+		UNIT_FADD="0"
+		UNIT_FDEL="0"
+		UNIT_FMOD="0"
+		UNIT_LADD="0"
+		UNIT_LDEL="0"
+		echo > ${SVNDIFF_LOG}
+		return
+	fi
+
+	svn diff --summarize \
+		"${UNIT_PURL}@${UNIT_PSR}" "${URL}@${SVN_CURRENT}" > ${SVNDIFF_LOG} 2>&1
+
+	echo
+
+	UNIT_FADD=`grep "^A       " ${SVNDIFF_LOG} | wc -l`
+	UNIT_FDEL=`grep "^D       " ${SVNDIFF_LOG} | wc -l`
+	UNIT_FMOD=`grep "^M       " ${SVNDIFF_LOG} | wc -l`
+	export UNIT_FADD UNIT_FDEL UNIT_FMOD
+
+	UNIT_FADD="`expr ${UNIT_FADD} + 0`"
+	UNIT_FDEL="`expr ${UNIT_FDEL} + 0`"
+	UNIT_FMOD="`expr ${UNIT_FMOD} + 0`"
+
+	svn diff "${UNIT_PURL}@${UNIT_PSR}" "${URL}@${SVN_CURRENT}" 2>&1 | \
+		diffstat -u > ${SVNDIFF_LOG}
+
+	echo
+
+	UNIT_LADD=`tail -1 ${SVNDIFF_LOG} | grep insertion | \
+		sed -e 's/.*changed, //' | cut -d' ' -f1`
+	UNIT_LDEL=`tail -1 ${SVNDIFF_LOG} | grep deletion | \
+		sed -e 's/.*insertion.*(+), //' | cut -d' ' -f1`
+
+	UNIT_LADD="`expr ${UNIT_LADD} + 0`"
+	UNIT_LDEL="`expr ${UNIT_LDEL} + 0`"
+}
+
+_metrics ()
+{
+	_metrics_upd
+
+	# Previous Release Unit Version:
+	UNIT_PV=""
+
+	# Current Release Unit Version:
+	UNIT_CV=""
+
+	# Previous Build Number:
+	UNIT_PBN=""
+
+	# Current Build Number:
+	_UNIT_CBN=""
+
+	# Previous Svn Revision:
+	UNIT_PSR=""
+
+	_mfile="`basename ${_MFILE}`"
+	_hfile="`basename ${_HFILE}`"
+
+	_msg b Retrieving Information for Build Metrics
+
+	if [ "${UNIT_PV}" = "" ] ; then
+		_msg b Looking for Previous Version in Metrics History File \"${_mfile}\"
+		UNIT_PV="`grep \"^${__UNITNAME}|\" ${_MFILE} | tail -1 | \
+			cut -d'|' -f2 | cut -d'.' -f1-3`"
+		[ "${UNIT_PV}" != "" ] && \
+		_msg e Previous Version FOUND: \"${UNIT_PV}\"
+	fi
+
+	if [ "${UNIT_PV}" = "" ] ; then
+		_msg b Looking for Previous Version in Builder History File \"${_hfile}\"
+		UNIT_PV="`grep \"^${__UNITNAME}|\" ${_HFILE} | tail -2 | head -1 | \
+			cut -d'|' -f2 | cut -d'.' -f1-3`"
+		[ "${UNIT_PV}" != "" ] && \
+		_msg e Previous Version FOUND: \"${UNIT_PV}\"
+	fi
+
+	if [ "${UNIT_CV}" = "" ] ; then
+		_msg b Looking for Current Version in Builder History File \"${_hfile}\"
+		UNIT_CV="`grep \"^${__UNITNAME}|\" ${_HFILE} | tail -1 | \
+			cut -d'|' -f2 | cut -d'.' -f1-3`"
+		[ "${UNIT_CV}" != "" ] && \
+		_msg e Current Version FOUND: \"${UNIT_CV}\"
+	fi
+
+	if [ "${UNIT_PBN}" = "" ] ; then
+		_msg b Looking for Previous Build Number in Metrics History File \"${_mfile}\"
+		UNIT_PBN="`grep \"^${__UNITNAME}|\" ${_MFILE} | tail -1 | \
+			cut -d'|' -f2 | cut -d'.' -f4`"
+		[ "${UNIT_PBN}" != "" ] && \
+		_msg e Previous Build Number FOUND: \"${UNIT_PBN}\"
+	fi
+
+	if [ "${UNIT_PBN}" = "" ] ; then
+		_msg b Looking for Previous Build Number in Builder History File \"${_hfile}\"
+		UNIT_PBN="`grep \"^${__UNITNAME}|\" ${_HFILE} | tail -2 | head -1 | \
+			cut -d'|' -f2 | cut -d'.' -f4`"
+		[ "${UNIT_PBN}" != "" ] && \
+		_msg e Previous Build Number FOUND: \"${UNIT_PBN}\"
+	fi
+
+	if [ "${_UNIT_CBN}" = "" ] ; then
+		_msg b Looking for Current Build Number in Builder History File \"${_hfile}\"
+		_UNIT_CBN="`grep \"^${__UNITNAME}|\" ${_HFILE} | tail -1 | \
+			cut -d'|' -f2 | cut -d'.' -f4`"
+		[ "${_UNIT_CBN}" != "" ] && \
+		_msg e Current Build Number FOUND: \"${_UNIT_CBN}\"
+	fi
+
+	if [ "${UNIT_PSR}" = "" ] ; then
+		_msg b Looking for Previous Svn Revision in Metrics History File \"${_mfile}\"
+		UNIT_PSR="`grep \"^${__UNITNAME}|\" ${_MFILE} | tail -1 | cut -d'|' -f6`"
+		[ "${UNIT_PSR}" != "" ] && \
+		_msg e Previous Svn Revision FOUND: \"${UNIT_PSR}\"
+	fi
+
+	if [ "${UNIT_PSR}" = "" ] ; then
+		_msg b Looking for Previous Svn Revision in Builder History File \"${_hfile}\"
+		UNIT_PSR="`grep \"^${__UNITNAME}|\" ${_HFILE} | tail -2 | head -1 | cut -d'|' -f5`"
+		[ "${UNIT_PSR}" != "" ] && \
+		_msg e Previous Svn Revision FOUND: \"${UNIT_PSR}\"
+	fi
+
+	# assuming current:
+	if [ "${UNIT_PSR}" = "" ] ; then
+		_msg b Assuming Previous Svn Revision same as Current: \"${SVN_CURRENT}\"
+		UNIT_PSR="${SVN_CURRENT}"
+	fi
+
+	if [ "${UNIT_PURL}" = "" ] ; then
+		_msg b Looking for Previous Source URL in Metrics History File \"${_mfile}\"
+		UNIT_PURL="`grep \"^${__UNITNAME}|\" ${_MFILE} | tail -1 | cut -d'|' -f5 | \
+			sed -e \"s,^${_SVN_ROOT}/,${SVN_ROOT}/,g\"`"
+		[ "${UNIT_PURL}" != "" ] && \
+		_msg e Previous Source URL FOUND: \"${UNIT_PURL}\"
+	fi
+
+	# assuming current:
+	if [ "${UNIT_PURL}" = "" ] ; then
+		_msg b Assuming Previous Svn URL same as Current: \"${URL}\"
+		UNIT_PURL="${URL}"
+	fi
+
+	_msg b Generating ${BUILD_TYPE} Build Metrics for \"${UNITNAME} Version ${UNIT_CV}.${_UNIT_CBN}\"
+
+	_unit_list
+
+	_unit_fno
+
+	_unit_dno
+
+	_unit_lno
+
+	_unit_javafno
+
+	_unit_javalno
+
+	_unit_diff
+
+	(
+	echo "#"
+	echo "# ${DOLLAR}HeadURL${DOLLAR}"
+	echo "# ${DOLLAR}Revision${DOLLAR}"
+	echo "# ${DOLLAR}Date${DOLLAR}"
+	echo "#"
+	echo "# Copyright(c) 2010-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+	echo "#"
+	echo "# `basename ${METRICS_LOG}`: Release Units Metrics Log"
+	echo "#"
+	echo
+	echo "#### Release Unit Name         = <${UNITNAME}>"
+	echo "#### Feature ID                = <${FEATURE}>"
+	echo "####"
+	echo "#### Build Metrics History     = <${_MFILE}>"
+	echo "####"
+	echo "#### Metrics Location          = <${LOGD}>"
+	echo "####"
+	echo "#### Previous Version          = <${UNIT_PV}>"
+	echo "#### Previous Build Number     = <${UNIT_PBN}>"
+	echo "#### Previous URL              = <${UNIT_PURL}>"
+	echo "#### Previous SVN Revision     = <${UNIT_PSR}>"
+	echo "####"
+	echo "#### Current  Version          = <${UNIT_CV}>"
+	echo "#### Current  Build Number     = <${_UNIT_CBN}>"
+	echo "#### Current  URL              = <${URL}>"
+	echo "#### Current  SVN Revision     = <${SVN_CURRENT}>"
+	echo "####"
+	echo "#### Total Files               = <${UNIT_FNO}>"
+	echo "#### Total Directories         = <${UNIT_DNO}>"
+	echo "#### Total Lines               = <${UNIT_LNO}>"
+	echo "####"
+	echo "#### Java (.java) Files        = <${UNIT_JAVAFNO}>"
+	echo "#### Java (.java) Lines        = <${UNIT_JAVALNO}>"
+	echo "####"
+	echo "#### Files Added               = <${UNIT_FADD}>"
+	echo "#### Files Deleted             = <${UNIT_FDEL}>"
+	echo "#### Files Modified            = <${UNIT_FMOD}>"
+	echo "####"
+	echo "#### Lines Added               = <${UNIT_LADD}>"
+	echo "#### Lines Deleted             = <${UNIT_LDEL}>"
+	echo "####"
+	echo
+	echo "#### diffstat detailed output:"
+	echo
+	cat ${SVNDIFF_LOG}
+	) 2>&1 | tee ${_METRICS_LOG}
+
+	__METRICS_LOG="${LOGD}/`basename ${METRICS_LOG}`"
+	export __METRICS_LOG
+
+	cp -p ${_METRICS_LOG} ${__METRICS_LOG}
+
+	__METRICS_LOG="`echo ${__METRICS_LOG} | \
+		sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+
+	_metrics_hst
+
+	_msg e Metrics for "${UNITNAME}" Completed
+}
+
+_depot ()
+{
+	_msg b Determining Depot Name
+	_match=0
+	_depots="`grep \"|ENABLED$\" ${DEPOT_CFG} | cut -d'|' -f1`"
+	[ "${_depots}" = "" ] && _exit 24 INVALID_SVN_DEPOT "${URL}"
+	for _d in ${_depots} ; do
+		DEPOT="`echo \"${URL}\" | sed -e \"s,^${_d}/,,\"`"
+		if [ "${DEPOT}" != "${URL}" ] ; then
+			# match found
+			_match=1
+			SVN_SRC_ROOT="${_d}"
+			export SVN_SRC_ROOT
+			break
+		fi
+	done
+	[ ${_match} -eq 1 ] || _exit 24 INVALID_SVN_DEPOT "${URL}"
+	DEPOT="`echo \"${DEPOT}\" | cut -d'/' -f1`"
+	export DEPOT
+	_msg e Depot Name OK "(${DEPOT})"
+
+	[ "${DEPOT}" = "devtools" ] && aflag=0
+
+	DEPOT_ROOT="${SRC_ROOT}/${DEPOT}"
+	TRUNK_ROOT="${DEPOT_ROOT}/trunk"
+	BRANCH_ROOT="${DEPOT_ROOT}/branches"
+	TAG_ROOT="${DEPOT_ROOT}/tags"
+	export DEPOT_ROOT TRUNK_ROOT BRANCH_ROOT TAG_ROOT
+
+	__boot -N DEPOT_ROOT  "${DEPOT_ROOT}"  "${SVN_SRC_ROOT}"
+	__boot -N TRUNK_ROOT  "${TRUNK_ROOT}"  "${SVN_SRC_ROOT}"
+	__boot -N BRANCH_ROOT "${BRANCH_ROOT}" "${SVN_SRC_ROOT}"
+	__boot -N TAG_ROOT    "${TAG_ROOT}"    "${SVN_SRC_ROOT}"
+}
+
+_mirrors ()
+{
+	_match=0
+	_u="${URL}"
+	__mirrors="`grep \"|ENABLED$\" ${MIRRORS_CFG} | cut -d'|' -f1`"
+	[ "${__mirrors}" = "" ] && return
+	_msg b Scanning Mirror Depots
+	for _m in ${__mirrors} ; do
+		SVN_MIRROR="`echo \"${_u}\" | sed -e \"s,^${_m}/,,\"`"
+		if [ "${SVN_MIRROR}" != "${_u}" ] ; then
+			# match found
+			_match=1
+			SVN_MIRROR="${_m}"
+			_msg e "Mirror Depot Found: <${SVN_MIRROR}>"
+			break
+		fi
+	done
+	if [ ${_match} -eq 1 ] ; then
+		URL="`echo ${_u} | sed -e \"s,^${SVN_MIRROR}/,${SVN_ROOT}/,\"`"
+		_msg e "Mirror URL <${_u}> Mapped: <${URL}>"
+	else
+		_msg e "No Mirror Found. URL Unchanged: <${URL}>"
+	fi
+}
+
+_candidates ()
+{
+	[ "${CANDIDATES}" = "" ] && \
+	__CANDIDATES="`grep \"${CANDIDATES_ROOT}/.*/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]\.${USER}.*$\" ${_BUILDER_LOG} 2>${DEVNULL} | \
+		head -1 | sed -e \"s,^.*${CANDIDATES_ROOT}/,${CANDIDATES_ROOT}/,\" \
+		-e \"s,\.${USER}.*$,\.${USER},\"`"
+	export __CANDIDATES
+
+	[ "${__CANDIDATES}" != "" ] && \
+		[ -d "${__CANDIDATES}" ] && CANDIDATES="`cd ${__CANDIDATES} ; /bin/pwd`"
+	export CANDIDATES
+
+	_CANDIDATES="`echo ${CANDIDATES} | \
+		sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+	export _CANDIDATES
+
+	# Build Logs Location:
+	LOGD="${CANDIDATES}/logs"
+	_LOGD="${_CANDIDATES}/logs"
+	export LOGD _LOGD
+}
+
+_dependencies_log ()
+{
+	DEPENDENCIES_LOG_PFX="${LOGD}/dependencies-"
+	DEPENDENCIES_LOG="`ls -1 ${DEPENDENCIES_LOG_PFX}*.{log,gz} 2>${DEVNULL}`"
+	export DEPENDENCIES_LOG_PFX DEPENDENCIES_LOG
+	if [ -f "${DEPENDENCIES_LOG}" ] ; then
+		_dls="`basename ${DEPENDENCIES_LOG} | sed -e 's,.xml,_xml,g'`"
+		if [ "${DEPENDENCIES_LOG}" != "${LOGD}/${_dls}" ] ; then
+			cp -p ${DEPENDENCIES_LOG} ${LOGD}/${_dls}
+			DEPENDENCIES_LOG="${LOGD}/${_dls}"
+		fi
+	fi
+}
+
+_feature_log ()
+{
+	FEATURE_LOG_PFX="${LOGD}/feature-"
+	FEATURE_LOG="`ls -1 ${FEATURE_LOG_PFX}${FEATURE}*.{log,gz} 2>${DEVNULL}`"
+	export FEATURE_LOG_PFX FEATURE_LOG
+	if [ -f "${FEATURE_LOG}" ] ; then
+		_fls="`basename ${FEATURE_LOG} | sed -e 's,.xml,_xml,g'`"
+		if [ "${FEATURE_LOG}" != "${LOGD}/${_fls}" ] ; then
+			cp -p ${FEATURE_LOG} ${LOGD}/${_fls}
+			FEATURE_LOG="${LOGD}/${_fls}"
+		fi
+	fi
+}
+
+_setup_log ()
+{
+	SETUP_LOG_PFX="${LOGD}/setup-"
+	SETUP_LOG="`ls -1 ${SETUP_LOG_PFX}${FEATURE}*.{log,gz} 2>${DEVNULL}`"
+	export SETUP_LOG_PFX SETUP_LOG
+	if [ -f "${SETUP_LOG}" ] ; then
+		_sls="`basename ${SETUP_LOG} | sed -e 's,.xml,_xml,g'`"
+		if [ "${SETUP_LOG}" != "${LOGD}/${_sls}" ] ; then
+			cp -p ${SETUP_LOG} ${LOGD}/${_sls}
+			SETUP_LOG="${LOGD}/${_sls}"
+		fi
+	fi
+}
+
+_generator_log ()
+{
+	GENERATOR_LOG_PFX="${LOGD}/generator-assemble.xml-"
+	GENERATOR_LOG="`ls -1 ${GENERATOR_LOG_PFX}${FEATURE}*.{log,gz} 2>${DEVNULL}`"
+	export GENERATOR_LOG_PFX GENERATOR_LOG
+	if [ -f "${GENERATOR_LOG}" ] ; then
+		_tls="`basename ${GENERATOR_LOG} | sed -e 's,.xml,_xml,g'`"
+		if [ "${GENERATOR_LOG}" != "${LOGD}/${_tls}" ] ; then
+			cp -p ${GENERATOR_LOG} ${LOGD}/${_tls}
+			GENERATOR_LOG="${LOGD}${_tls}"
+		fi
+	fi
+}
+
+_tools_log ()
+{
+	TOOLS_LOG_PFX="/logs/generator-assemble.xml-"
+	TOOLS_LOG="`grep \"\[java\] See .*${TOOLS_LOG_PFX}.*\.log for details\" ${_BUILDER_LOG} | \
+		tail -1`"
+	_TOOLS_LOG=""
+	export TOOLS_LOG_PFX TOOLS_LOG _TOOLS_LOG __TOOLS_LOG
+	if [ "${TOOLS_LOG}" != "" ] ; then
+		TOOLS_LOG="`echo ${TOOLS_LOG} | sed -e 's,^.*See ,,' -e 's, for details$,,'`"
+		_tls="`echo ${TOOLS_LOG} | sed -e \"s,^.*${TOOLS_LOG_PFX},,\"`"
+		_tlp="`echo ${TOOLS_LOG} | sed -e \"s,${_tls}$,,\"`"
+		_tls="`echo ${_tls} | sed -e 's,.xml,_xml,g'`"
+		[ "${TOOLS_LOG}" != "${_tlp}${_tls}" ] && \
+			cp -p ${TOOLS_LOG} ${_tlp}${_tls}
+		TOOLS_LOG="${_tlp}${_tls}"
+		__TOOLS_LOG="`basename ${TOOLS_LOG} | sed -e \"s,\.log$,-${USER}-${PSTAMP}.log,\"`"
+		_TOOLS_LOG="`echo ${TOOLS_LOG} | \
+			sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+	fi
+}
+
+_isset ()
+{
+	_sav_JDK_VERSION="${JDK_VERSION}"
+	_sav_JDK_HOME="${JDK_HOME}"
+	_sav_JAVA_HOME="${JAVA_HOME}"
+	_sav_PATH="${PATH}"
+	JDK_VERSION="1.7.0_85"
+	JDK_HOME="${EXTERNAL}/jdk/${JDK_VERSION}"
+	JAVA_HOME="${JDK_HOME}/${PORT}"
+	PATH="${JAVA_HOME}/bin:${PATH}"
+	export JDK_VERSION JDK_HOME JAVA_HOME PATH
+	(
+	cd "${UNIT_WC}"
+	[ -f targets.xml ] && mv targets.xml targets.xml.SAV
+	case ${1} in
+	dual.build.enable|autobuild.p2.packaging)
+		_msg b Checking if ${1} is defined
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.boilerplate.version)
+		_msg b Retrieving Tools Boilerplate Version
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	javacSource)
+		_msg b Retrieving Java Source Version
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.jdk.force-15)
+		_msg b Checking if Java 1.5 classes must be used
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.jdk.force-16)
+		_msg b Checking if Java 1.6 classes must be used
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.jdk.force-17)
+		_msg b Checking if Java 1.7 classes must be used
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.jdk.force-18)
+		_msg b Checking if Java 1.8 classes must be used
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.jdk.force-110)
+		_msg b Checking if Java 11.0 classes must be used
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.dir.java-classes)
+		_msg b Retrieving Default Java Classes
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.dir.java15-classes)
+		_msg b Retrieving Java 1.5 Classes
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.dir.java16-classes)
+		_msg b Retrieving Java 1.6 Classes
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.dir.java17-classes)
+		_msg b Retrieving Java 1.7 Classes
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.dir.java18-classes)
+		_msg b Retrieving Java 1.8 Classes
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;
+	autobuild.dir.java110-classes)
+		_msg b Retrieving Java 11.0 Classes
+		ant -f "${ISSETXML}" -Dbasedir="`pwd`" ${1}
+		;;	
+	*)
+		:
+		;;
+	esac
+	[ -f targets.xml.SAV ] && mv targets.xml.SAV targets.xml
+	)
+	JDK_VERSION="${_sav_JDK_VERSION}"
+	JDK_HOME="${_sav_JDK_HOME}"
+	JAVA_HOME="${_sav_JAVA_HOME}"
+	PATH="${_sav_PATH}"
+}
+
+DUAL=0
+_RU_TYPE="Regular"
+ECLIPSE_RU="eclipse-ru"
+export DUAL _RU_TYPE ECLIPSE_RU
+
+_ru_type ()
+{
+	_t="${1}"
+	case ${_t} in
+		"S")
+		_t="Source"
+		;;
+		"L")
+		_t="Location"
+		;;
+		*)
+		_t="Source"
+		;;
+	esac
+	_msg b Determining Release Unit Type by ${_t}
+	case ${_t} in
+		"Source")
+			_msg b Inspecting ${UNIT_OVERRIDES}
+			_isset dual.build.enable | tee ${_ISSET_LOG}
+			_dflag="`grep '\[echo\] dual.build.enable = \[' ${_ISSET_LOG} | \
+				cut -d'[' -f3 | cut -d']' -f1`"
+			/bin/rm -f ${_ISSET_LOG}
+			if [ "${_dflag}" != "UNDEFINED" ] ; then
+				DUAL=1
+				_RU_TYPE="Dual"
+			fi
+			;;
+		"Location")
+			if [ -d "${CANDIDATES}/${ECLIPSE_RU}" ] ; then
+				DUAL=1
+				_RU_TYPE="Dual"
+			fi
+			;;
+	esac
+	_msg e ${_RU_TYPE} Release Unit Detected
+}
+
+_site ()
+{
+	cd "${CANDIDATES}" || _exit 7 BUILD_FAILED "Candidates Directory" "${CANDIDATES}"
+
+	__FEATURE="${FEATURE}"
+	___FEATURE="${_FEATURE}"
+
+	[ "${_RU_TYPE}" = "Regular" ] && _ru_type L
+
+	if [ ${DUAL} -eq 1 ] ; then
+		__FEATURE="${__FEATURE}.eclipse"
+		___FEATURE="${___FEATURE}_eclipse"
+	fi
+
+	case ${DEPOT} in
+	devtools)
+		CANDIDATES_LIST="${_CANDIDATES}/jar/devtools/site.xml"
+		;;
+	gpl|thirdparty)
+		CANDIDATES_LIST="${_CANDIDATES}/jar/thirdparty/site.xml"
+		;;
+	*)
+		CANDIDATES_LIST="${_CANDIDATES}/jar/debug/site.xml,${_CANDIDATES}/jar/release/site.xml"
+		;;
+	esac
+	export CANDIDATES_LIST
+
+	UNIT_TSTAMP="`basename ${CANDIDATES} | cut -d'.' -f1`"
+	export UNIT_TSTAMP
+
+	UNIT_DSTAMP="`date '+%Y-%m-%d-%H%M'`"
+	export UNIT_DSTAMP
+
+	_msg b Updating Candidates Directory "${CANDIDATES}"
+	cd "${CANDIDATES}"
+	[ -h ${DEPOT} ] && /bin/rm -f ${DEPOT}
+	[ -h thirdparty ] && /bin/rm -f thirdparty
+	[ -h jar/${DEPOT} ] && /bin/rm -f jar/${DEPOT}
+	[ -h jar/thirdparty ] && /bin/rm -f jar/thirdparty
+	if [ ${DUAL} -eq 1 ] ; then
+		(
+		cd "${ECLIPSE_RU}"
+		[ -h ${DEPOT} ] && /bin/rm -f ${DEPOT}
+		[ -h thirdparty ] && /bin/rm -f thirdparty
+		[ -h jar/thirdparty ] && /bin/rm -f jar/thirdparty
+		)
+	fi
+	case ${DEPOT} in
+	devtools)
+		ln -s debug devtools
+		ln -s debug jar/devtools
+		basename `pwd`
+		echo
+		ls -l devtools jar/devtools
+		if [ ${DUAL} -eq 1 ] ; then
+			(
+			cd "${ECLIPSE_RU}"
+			ln -s debug devtools
+			echo
+			basename `pwd`
+			echo
+			ls -l devtools
+			)
+		fi
+		FEATURE_SUBDIR="${FEATURE_SUBDIR:-jar/devtools/features}"
+		;;
+	gpl|thirdparty)
+		ln -s release thirdparty
+		ln -s release jar/thirdparty
+		basename `pwd`
+		echo
+		ls -l thirdparty jar/thirdparty
+		if [ ${DUAL} -eq 1 ] ; then
+			(
+			cd "${ECLIPSE_RU}"
+			ln -s release thirdparty
+			[ -d jar/release ] && ln -s release jar/thirdparty
+			echo
+			basename `pwd`
+			echo
+			ls -l thirdparty
+			[ -d jar/release ] && ls -l jar/thirdparty
+			)
+		fi
+		FEATURE_SUBDIR="${FEATURE_SUBDIR:-jar/thirdparty/features}"
+		;;
+	*)
+		FEATURE_SUBDIR="${FEATURE_SUBDIR:-jar/release/features}"
+		;;
+	esac
+	cd ${FEATURE_SUBDIR}
+	case ${FEATURE} in
+	"com.tibco.tibcoxml.tra")
+		if [ ! -f TIBCOxml.jar ] ; then
+			cd ${pw}
+			_exit 13 BUILD_FAILED TIBCOxml.jar
+		fi
+		UNIT_CBN="`java -jar TIBCOxml.jar | head -1 | cut -d' ' -f3 | cut -d'.' -f4`"
+		;;
+	"com.tibco.gxml.tra")
+		if [ ! -f gxml.jar ] ; then
+			cd ${pw}
+			_exit 13 BUILD_FAILED gxml.jar
+		fi
+		UNIT_CBN="`java -jar gxml.jar | head -1 | cut -d' ' -f4 | cut -d'.' -f4`"
+		# UNIT_CBN="`basename ${CANDIDATES} | sed -e \"s,${FEATURE}\.,,\" | cut -d'.' -f4`"
+		;;
+	"com.tibco.xmlcanon.bwdav.feature")
+		if [ ! -f davstore.jar ] ; then
+			cd ${pw}
+			_exit 13 BUILD_FAILED davstore.jar
+		fi
+		UNIT_CBN="`java -jar davstore.jar | head -1 | cut -d' ' -f7 | cut -d'.' -f4`"
+		;;
+	*)
+		if [ ! -f ${FEATURE}_*.jar ] ; then
+			cd ${pw}
+			_exit 13 BUILD_FAILED ${FEATURE}
+		fi
+		UNIT_CBN="`ls ${FEATURE}_*.jar | sed -e \"s,${FEATURE}_,,\" -e 's,.jar$,,' | \
+			cut -d'.' -f4`"
+		;;
+	esac
+	_ermtag ACTUAL_BUILD_NUMBER ${UNIT_CBN}
+	[ "${UNIT_CBN}" = "" ] && _exit 23 INVALID_BUILD_NO "Main FEATURE Build Number"
+	_UNIT_CBN="${UNIT_CBN}"
+	UNIT_CBQ="`echo ${UNIT_CBN} | cut -d'-' -f2-`"
+	if [ "${UNIT_CBQ}" != "${UNIT_CBN}" ] ; then
+		UNIT_CBN="`echo ${UNIT_CBN} | cut -d'-' -f1`"
+	else
+		UNIT_CBQ=""
+	fi
+	export _UNIT_CBN UNIT_CBN UNIT_CBQ
+	_ermtag ACTUAL_BUILD_QUALIFIER ${UNIT_CBQ}
+	cd ${pw}
+}
+
+__manifest ()
+{
+	__MANIFEST="${UNITNAME} Version ${UNIT_CV}.${_UNIT_CBN}"
+	_MANIFEST="${__UNITNAME} Version ${UNIT_CV}.${_UNIT_CBN}"
+	MANIFEST="${MNF_ROOT}/${_MANIFEST}.txt"
+	___MANIFEST="${_MNF_ROOT}/${_MANIFEST}.txt"
+	export ___MANIFEST __MANIFEST _MANIFEST MANIFEST
+}
+
+_manifest ()
+{
+	ASM_MANIFEST="${LOGD}/assembly.txt"
+	ASMDUAL_MANIFEST="${LOGD}/assembly-dual.txt"
+	RU_MANIFEST="${LOGD}/full-ru.txt"
+	RUDUAL_MANIFEST="${LOGD}/full-dual-ru.txt"
+	export ASM_MANIFEST ASMDUAL_MANIFEST RU_MANIFEST RUDUAL_MANIFEST
+
+	cd ${CANDIDATES}
+	_manifest="${MNF_ROOT}/manifest.${PSTAMP}.tmp"
+	_msg b Building Manifest "${MANIFEST}"
+	(
+	echo "# pwd: ${CANDIDATES}/jar"
+	echo "# awd: ${CANDIDATES}"
+	) > ${_manifest}.1
+	cd jar
+	case ${DEPOT} in
+	devtools)
+		find debug -type f -print | sort -u | \
+		egrep -v "/site.xml$|/site-provenance.xml$" | \
+		sed -e 's,^debug/,devtools/,'
+		;;
+	gpl|thirdparty)
+		find release -type f -print | sort -u | grep "^release/" | \
+		egrep -v "/site.xml$|/site-provenance.xml$|\.IS_NOT_OBFUSCATED$" | \
+		sed -e 's,^release/,thirdparty/,'
+		;;
+	*)
+		find debug release -type f -print | sort -u | \
+		egrep -v "/site.xml$|/site-provenance.xml$|\.IS_NOT_OBFUSCATED$|\.jar\.aj$|\.jar\.orig$"
+		;;
+	esac | egrep -v "`echo ${P2_JARS} | sed -e 's, ,|,g'`" | sort -u > ${_manifest}.2
+	grep "/features/" ${_manifest}.2 | while read _f ; do
+		_v="`echo ${_f} | sed -e 's,^.*_,,'`"
+		_n="`echo ${_f} | sed -e \"s,_${_v}$,,\"`.cat"
+		echo "${_n}"
+	done > ${_manifest}.3
+	cat ${_manifest}.2 ${_manifest}.3 | sort -u > ${_manifest}.4
+	[ ${fflag} -eq 2 ] && \
+	[ ! -f ${ASM_MANIFEST} ] && [ ! -f ${ASMDUAL_MANIFEST} ] && fflag=1 && \
+	_msg e Switching Filter Mode to Pattern Driven "(${fflag})"
+	if [ -f ${ASM_MANIFEST} ] ; then
+		grep "^debug/" ${_manifest}.4 > ${_manifest}.5
+		_msg b Identifying Features for Regular Assembly using "${ASM_MANIFEST}"
+		grep "/features/" ${_manifest}.4 | grep -v "^debug/" | while read f ; do
+			n="`basename ${f}`"
+			_n="`grep \"^feature=${n}$\" ${ASM_MANIFEST} | cut -d'=' -f2`"
+			if [ "${n}" = "${_n}" ] ; then
+				echo "${f}|asm"
+			else
+				echo "${f}"
+			fi
+		done >> ${_manifest}.5
+		grep '|asm$' ${_manifest}.5 | grep "/features/" | sed -e 's,|.*$,,'
+		_msg b Identifying Plugins for Regular Assembly using "${ASM_MANIFEST}"
+		grep "/plugins/" ${_manifest}.4 | grep -v "^debug/" | while read p ; do
+			n="`basename ${p}`"
+			_n="`grep \"^plugin=${n}$\" ${ASM_MANIFEST} | cut -d'=' -f2`"
+			if [ "${n}" = "${_n}" ] ; then
+				echo "${p}|asm"
+			else
+				echo "${p}"
+			fi
+		done >> ${_manifest}.5
+		grep '|asm$' ${_manifest}.5 | grep "/plugins/" | sed -e 's,|.*$,,'
+		mv ${_manifest}.5 ${_manifest}.4
+	fi
+	if [ -f ${ASMDUAL_MANIFEST} ] ; then
+		grep "^debug/" ${_manifest}.4 > ${_manifest}.5
+		_msg b Identifying Features for Dual Assembly using "${ASMDUAL_MANIFEST}"
+		grep "/features/" ${_manifest}.4 | grep -v "^debug/" | while read f ; do
+			n="`basename ${f}`"
+			_n="`echo ${n} | sed -e 's/|asm$//'`"
+			__n="`grep \"^feature=${_n}$\" ${ASMDUAL_MANIFEST} | cut -d'=' -f2`"
+			if [ "${_n}" = "${__n}" ] ; then
+				echo "${f}|asm-dual"
+			else
+				echo "${f}"
+			fi
+		done >> ${_manifest}.5
+		grep '|asm-dual$' ${_manifest}.5 | grep "/features/" | sed -e 's,|.*$,,'
+		_msg b Identifying Plugins for Dual Assembly using "${ASMDUAL_MANIFEST}"
+		grep "/plugins/" ${_manifest}.4 | grep -v "^debug/" | while read p ; do
+			n="`basename ${p}`"
+			_n="`echo ${n} | sed -e 's/|asm$//'`"
+			__n="`grep \"^plugin=${_n}$\" ${ASMDUAL_MANIFEST} | cut -d'=' -f2`"
+			if [ "${_n}" = "${__n}" ] ; then
+				echo "${p}|asm-dual"
+			else
+				echo "${p}"
+			fi
+		done >> ${_manifest}.5
+		grep '|asm-dual$' ${_manifest}.5 | grep "/plugins/" | sed -e 's,|.*$,,'
+		mv ${_manifest}.5 ${_manifest}.4
+	fi
+	sort -u ${_manifest}.4 -o ${_manifest}.4
+	#
+	# if no builder-provided manifest exists, then turn on old filtering mode for
+	# assembly creation, otherwise use the new filtering mode.
+	#
+	cat ${_manifest}.1 ${_manifest}.4 > "${MANIFEST}"
+	rm -f ${_manifest}.[1-5]
+	cp -p "${MANIFEST}" "${LOGD}"
+	_msg e Manifest OK
+}
+
+_sign_hst ()
+{
+	_msg b Updating ${BUILD_TYPE} Sign History File ${_SIGN_HST}
+	# Use builder "Date Built" instead of "Date Signed":
+	cat ${_SIGN_HST} | \
+		cut -d'|' -f1,3,4 | \
+		sed -e "s,^,${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${UNIT_DSTAMP}|," \
+		> ${_SIGN_HST}.1
+	mv ${_SIGN_HST}.1 ${_SIGN_HST}
+	cat ${_SIGN_HST} | tee -a ${LOGD}/`basename ${SIGN_HST}`
+}
+
+_sign ()
+{
+	SIGNLIST="${HST_ROOT}/signlist.${USER}-${PSTAMP}.txt"
+	export SIGNLIST
+
+	_msg b Preparing Sign List
+
+	# Selection Criteria:
+	#
+	# 1: sign all the jar files that end up published and/or into an assembly
+	#
+	_crit=1
+
+	case ${_crit} in
+	1)
+		_pwd="`grep '# pwd:' \"${MANIFEST}\" | cut -d' ' -f3`"
+		egrep "^debug/|^release/" "${MANIFEST}" | \
+			sed -e "s,|.*$,," | grep "\.jar$" | \
+			sed -e "s,^,${_pwd}/," > ${SIGNLIST}
+		;;
+	*)
+		:
+		;;
+	esac
+
+	_msg e "Sign List OK (${SIGNLIST})"
+
+	(
+	echo "#"
+	echo "# ${DOLLAR}HeadURL${DOLLAR}"
+	echo "# ${DOLLAR}Revision${DOLLAR}"
+	echo "# ${DOLLAR}Date${DOLLAR}"
+	echo "#"
+	echo "# Copyright(c) 2015-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+	echo "#"
+	echo "# `basename ${SIGN_LOG}`: Release Units Sign Log"
+	echo "#"
+
+	_msg b Signing Release Unit Artifats
+
+	echo "#### Release Unit Name                = <${__UNITNAME}>"
+	echo "#### Release Unit Version             = <${UNIT_CV}.${_UNIT_CBN}>"
+	echo "#### Feature ID                       = <${FEATURE}>"
+	echo "####"
+	echo "#### Date/Time Stamp                  = <${UNIT_DSTAMP}>"
+	echo "####"
+
+	${SIGN} -nc -f ${SIGNLIST} -j ${PSTAMP} -H ${_SIGN_HST}
+
+	_exit=${?}
+
+	if [ ${_exit} -eq 0 ] ; then
+		_msg e Signing Completed
+	else
+		__exit 1
+	fi
+
+	_sign_hst
+
+        echo "_SIGN_HST_commit=1" > ${_COMMIT_CFG}
+
+	# clean up temporary files:
+
+	/bin/rm -rf ${SIGNLIST}
+
+	__exit 0
+	) 2>&1 | tee -a ${_SIGN_LOG}
+
+	cp -p "${_SIGN_LOG}" ${LOGD}/`basename ${SIGN_LOG}`
+
+	sgn_ok="`tail -1 ${_SIGN_LOG} | cut -d'=' -f2`"
+	[ ${sgn_ok} -ne 0 ] && _exit 19 SIGN_FAILED "${__MANIFEST}"
+}
+
+DOLLAR='$'
+export DOLLAR
+
+slash="/"
+blash="\\"
+dlash="${blash}${blash}"
+export slash blash dlash
+
+_project_hst ()
+{
+	_msg b Updating ${BUILD_TYPE} Build Assembly Project History File ${_PROJECT_HST}
+	echo "${__UNITNAME}|${compName}|${UNIT_DSTAMP}|${PREV}|${IREV}|${USER}" | \
+		tee -a ${_PROJECT_HST} | tee -a ${LOGD}/`basename ${PROJECT_HST}`
+}
+
+_project ()
+{
+	_atype="${1}"
+
+	case ${_atype} in
+	dual)
+		feature="${__FEATURE}"
+		_feature="${___FEATURE}"
+		compName="${feature}"
+		;;
+	p2)
+		feature="${FEATURE}"
+		_feature="${_FEATURE}_p2"
+		compName="${feature}.p2"
+		;;
+	*)
+		feature="${FEATURE}"
+		_feature="${_FEATURE}"
+		compName="${feature}"
+		;;
+	esac
+
+	_status_pwc
+
+	_update_pwc
+
+	ASSEMBLY_WC="${PROJECT_ROOT}/${_feature}"
+	_ASSEMBLY_WC="`echo ${ASSEMBLY_WC} | \
+		sed -e \"s,^${TSI_ROOT}/,${dlash}${dlash}builder${dlash}root${dlash},\" \
+		-e \"s,${slash},${dlash},g\"`"
+	export ASSEMBLY_WC _ASSEMBLY_WC
+	case ${SVN_VERSION} in
+	1.8.10)
+		__url="`svn info \"${_PROJECT_ROOT}/${_feature}\" 2>&1 | tail -1`"
+		_invalidurl="Could not display info"
+		_validurl="`echo ${__url} | grep \"${_invalidurl}\" | cut -d' ' -f3-6`"
+		;;
+	1.6.9|*)
+		__url="`svn info \"${_PROJECT_ROOT}/${_feature}\" 2>&1 | head -1`"
+		_invalidurl="Not a valid URL"
+		_validurl="`echo ${__url} | grep \"${_invalidurl}\" | cut -d'(' -f2 | cut -d')' -f1`"
+		;;
+	esac
+	[ "${_validurl}" = "${_invalidurl}" ] || return
+
+	(
+	echo "#"
+	echo "# ${DOLLAR}HeadURL${DOLLAR}"
+	echo "# ${DOLLAR}Revision${DOLLAR}"
+	echo "# ${DOLLAR}Date${DOLLAR}"
+	echo "#"
+	echo "# Copyright(c) 2009-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+	echo "#"
+	echo "# `basename ${PROJECT_LOG}`: Release Units Assembly Project Creation Log"
+	echo "#"
+
+	if [ "${_atype}" = "dual" ] ; then
+		_msg b Creating Dual Assembly Project
+	else
+		_msg b Creating Assembly Project
+	fi
+
+	_antcmd="ant -f build_assembly.xml \
+		-DassemblyType="assembly_template" \
+		-DnewSVNLocation="${_PROJECT_ROOT}" \
+		-DcompName="${compName}" \
+		-DnewAssemblyLoc="../tmp.${USER}-${PSTAMP}" \
+		createnewassembly"
+	_antcmd="`echo ${_antcmd} | sed -e 's,		,,'`"
+	export _antcmd
+
+	echo "#### Release Unit Name               = <${UNITNAME}>"
+	echo "#### Feature ID                      = <${feature}>"
+	echo "####"
+	echo "#### Assembly Packaging Working Copy = <${PACKAGING_ROOT}>"
+	echo "####"
+	echo "#### Assembly Packaging Revision     = <${PREV}>"
+	echo "####"
+	echo "#### Assembly Project Name           = <${_feature}>"
+	echo "####"
+	echo "#### Assembly Project URL            = <${_PROJECT_ROOT}>"
+	echo "####"
+	echo "#### Ant Command Line                = <${_antcmd}>"
+
+	(
+	_msg b Setting the Environment
+
+	cd ${PACKAGING_ROOT}/tool
+
+	. setenv.sh
+
+	_msg e Environment OK
+
+	_msg b Creating Assembly Project ${_feature}
+
+	${_antcmd}
+
+	_exit=${?}
+	[ ${_exit} -eq 0 ] && _msg e Assembly Project Created
+
+	/bin/rm -rf ../tmp.${USER}-${PSTAMP}
+
+	echo "_exit=${_exit}"
+	) 2>&1 | tee ${_PROJECT_LOG}.tmp
+
+	prj_ok="`tail -1 ${_PROJECT_LOG}.tmp | cut -d'=' -f2`"
+	/bin/rm -f ${_PROJECT_LOG}.tmp
+
+	if [ ${prj_ok} -ne 0 ] ; then
+		echo "_exit=${prj_ok}"
+		exit ${prj_ok}
+	fi
+
+	_update_awc ${_atype}
+
+	_project_hst
+
+	echo "_exit=0"
+	) 2>&1 | tee -a ${_PROJECT_LOG}
+
+	cp -p "${_PROJECT_LOG}" ${LOGD}/`basename ${PROJECT_LOG}`
+
+	prj_ok="`tail -1 ${_PROJECT_LOG} | cut -d'=' -f2`"
+	[ ${prj_ok} -ne 0 ] && _exit 19 ASSEMBLY_FAILED ${__FEATURE}
+}
+
+_asmcheck ()
+{
+	case "${FEATURE}" in
+	"com.tibco.tpcl.com.ibm.mq.osgi.java.feature")
+		aflag=0
+		;;
+	"com.tibco.amf.hpa.tibcohost.product.assembly.feature")
+		aflag=0
+		;;
+	"com.tibco.devtools.install.support.feature")
+		aflag=1
+		;;
+	"com.tibco.tibcoxml.tra"|"com.tibco.gxml.tra")
+		aflag=0
+		;;
+	"com.tibco.xmlcanon.bwdav.feature")
+		aflag=0
+		;;
+	"com.tibco.tpcl.com.mysql.jdbc.feature")
+		aflag=0
+		;;
+	"com.tibco.xmlcanon")
+		aflag=0
+		;;
+	"com.tibco.tpcl.org.hibernate.feature")
+		hflag=1
+		;;
+	"com.tibco.matrix.container.soapbinding.runtime")
+		iflag=0
+		zflag=0
+		izflag=1
+		;;
+	"com.tibco.spline.runtime.feature")
+		iflag=0
+		zflag=0
+		izflag=1
+		;;
+	*)
+		:
+		;;
+	esac
+}
+
+_assembly_hst ()
+{
+	_msg b Updating ${BUILD_TYPE} Build Assembly History File ${_ASSEMBLY_HST}
+	echo "${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${feature}|${UNIT_DSTAMP}|${IREV}|${assembly_zip}|${ISMP_ASSEMBLY_TYPE}|${ZIP_ASSEMBLY_TYPE}|${USER}" | \
+		tee -a ${_ASSEMBLY_HST} | tee -a ${LOGD}/`basename ${ASSEMBLY_HST}`
+}
+
+p2flag=0
+
+P2_JARS="artifacts.jar content.jar"
+export P2_JARS
+
+ISMP_ASSEMBLY_TYPE="ST"
+ZIP_ASSEMBLY_TYPE="ST"
+_ASSEMBLY_TYPE="Standard"
+export ISMP_ASSEMBLY_TYPE ZIP_ASSEMBLY_TYPE _ASSEMBLY_TYPE
+
+_assembly_type ()
+{
+	_msg b Determining Assembly Type
+	_msg b Inspecting ${UNIT_OVERRIDES}
+	_isset autobuild.p2.packaging | tee ${_ISSET_LOG}
+	_p2flag="`grep '\[echo\] autobuild.p2.packaging = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	/bin/rm -f ${_ISSET_LOG}
+	if [ "${_p2flag}" = "true" ] ; then
+		p2flag=1
+		_ASSEMBLY_TYPE="P2"
+	fi
+	_msg e ${_ASSEMBLY_TYPE} Assembly Detected
+}
+
+_boilerplate ()
+{
+	_msg b Determining Tools Boilerplate
+	_msg b Inspecting ${UNIT_BUILDXML}
+	_isset autobuild.boilerplate.version | tee ${_ISSET_LOG}
+	TOOLS_BPV="`grep '\[echo\] autobuild.boilerplate.version = \[' ${_ISSET_LOG} | \
+		cut -d'[' -f3 | cut -d']' -f1`"
+	/bin/rm -f ${_ISSET_LOG}
+	export TOOLS_BPV
+	_msg e Tools Boilerplate Retrieved: ${TOOLS_BPV}
+}
+
+_assembly ()
+{
+	zip_pfx="assembly_tibco"
+
+	ASSEMBLY_ZIP="${zip_pfx}_${_FEATURE}_${UNIT_CV}.${_UNIT_CBN}.zip"
+	ASSEMBLYD_ZIP="${zip_pfx}_${_FEATURE}_eclipse_${UNIT_CV}.${_UNIT_CBN}.zip"
+	ASSEMBLYP_ZIP="${zip_pfx}_${_FEATURE}_p2_${UNIT_CV}.${_UNIT_CBN}.zip"
+	export ASSEMBLY_ZIP ASSEMBLYD_ZIP ASSEMBLYP_ZIP
+
+	_atype="${1}"
+
+	case ${_atype} in
+	dual)
+		feature="${__FEATURE}"
+		_feature="${___FEATURE}"
+		assembly_zip="${ASSEMBLYD_ZIP}"
+		__ASSEMBLY_TYPE="Dual"
+		;;
+	p2)
+		feature="${FEATURE}"
+		_feature="${_FEATURE}_p2"
+		assembly_zip="${ASSEMBLYP_ZIP}"
+		__ASSEMBLY_TYPE="Regular"
+		;;
+	*)
+		feature="${FEATURE}"
+		_feature="${_FEATURE}"
+		assembly_zip="${ASSEMBLY_ZIP}"
+		__ASSEMBLY_TYPE="Regular"
+		;;
+	esac
+
+	[ -f ${_ASMLIST_LOG} ] || touch ${_ASMLIST_LOG}
+
+	(
+	echo "${ISMP_ASM_ARCHIVE}/${assembly_zip}"
+	echo "${ZIP_ASM_ARCHIVE}/${assembly_zip}"
+	) >> ${_ASMLIST_LOG}
+
+	exp="${SRC_ROOT}/spin/exp"
+
+         VERSION_MAJOR="`echo ${UNIT_CV} | cut -d'.' -f1`"
+         VERSION_MINOR="`echo ${UNIT_CV} | cut -d'.' -f2`"
+         VERSION_MAINT="`echo ${UNIT_CV} | cut -d'.' -f3`"
+        VERSION_UPDATE="${_UNIT_CBN}"
+        export VERSION_MAJOR VERSION_MINOR VERSION_MAINT VERSION_UPDATE
+
+	case ${DEPOT} in
+	devtools)
+		type="devtools"
+		;;
+	gpl|thirdparty)
+		type="thirdparty"
+		;;
+	*)
+		type="release"
+		;;
+	esac
+
+	cd ${MNF_ROOT}
+
+	EXPORT_DIR="${exp}/${_feature}/${UNIT_CV}.${_UNIT_CBN}"
+	export EXPORT_DIR
+
+	case ${fflag} in
+	0|1)
+		if [ "${_atype}" = "dual" ] ; then
+			grep "\.eclipse_[0-9]" "${MANIFEST}"
+		else
+			if [ ${DUAL} -eq 1 ] ; then
+				grep -v "\.eclipse_[0-9]" "${MANIFEST}"
+			else
+				cat "${MANIFEST}"
+			fi
+		fi
+		;;
+	2)
+		if [ "${_atype}" = "dual" ] ; then
+			egrep "\|asm-dual$|\|asm-dual\|" "${MANIFEST}"
+		else
+			egrep "\|asm$|\|asm\|" "${MANIFEST}"
+		fi
+		;;
+	esac | grep "^${type}/" | grep -v "\.cat$" | sed -e "s,|asm.*$,," > ${ASSEMBLY_MNF}
+
+	if [ ${fflag} -eq 1 ] ; then
+
+		__tstfiles_f=1
+		 _tstfiles_f="\.test_|/test\.com\.|/tests\.com\.|/test\.tibco\."
+		 _tstfiles_f="${_tstfiles_f}|/tests\.org\.|\.mappertester_"
+		__docfiles_f=1
+		 _docfiles_f="\.devdocs_|/docs\.com\."
+		jflag=1
+		[ ${jflag} -eq 0 ] && \
+		 _docfiles_f="${_docfiles_f}|\.javadoc_"
+		__tutfiles_f=1
+		 _tutfiles_f="/tutorial\.com\.|/com\.tibco\.tutorial\."
+		__srcfiles_f=1
+		 _srcfiles_f="\.source[\._]|\.sources[\._]|/sources\."
+
+		filter=""
+
+		[ ${__tstfiles_f} -eq 1 ] && filter="${filter}|${_tstfiles_f}"
+		[ ${__docfiles_f} -eq 1 ] && filter="${filter}|${_docfiles_f}"
+		[ ${__tutfiles_f} -eq 1 ] && filter="${filter}|${_tutfiles_f}"
+		[ ${__srcfiles_f} -eq 1 ] && filter="${filter}|${_srcfiles_f}"
+
+		filter="`echo ${filter} | cut -d'|' -f2-`"
+
+		if [ "${filter}" != "" ] ; then
+			egrep -v "${filter}" ${ASSEMBLY_MNF} > ${ASSEMBLY_MNF}.tmp
+			mv ${ASSEMBLY_MNF}.tmp ${ASSEMBLY_MNF}
+		fi
+
+	fi
+
+	FEATURE_LIST="${MNF_ROOT}/features.${USER}-${PSTAMP}.txt"
+	 PLUGIN_LIST="${MNF_ROOT}/plugins.${USER}-${PSTAMP}.txt"
+	 OFILES_LIST="${MNF_ROOT}/ofiles.${USER}-${PSTAMP}.txt"
+	export FEATURE_LIST PLUGIN_LIST OFILES_LIST
+
+	_FEATURE_LIST="${MNF_ROOT}/_features.${USER}-${PSTAMP}.txt"
+	 _PLUGIN_LIST="${MNF_ROOT}/_plugins.${USER}-${PSTAMP}.txt"
+	 _OFILES_LIST="${MNF_ROOT}/_ofiles.${USER}-${PSTAMP}.txt"
+	export _FEATURE_LIST _PLUGIN_LIST _OFILES_LIST
+
+	# feature list:
+	grep "${type}/features/" ${ASSEMBLY_MNF} | \
+		sed -e "s,^${type}/features/,," > ${FEATURE_LIST}
+
+	# plugin list:
+	grep "${type}/plugins/"  ${ASSEMBLY_MNF} | \
+		sed -e "s,^${type}/plugins/,,"  > ${PLUGIN_LIST}
+
+	# other files list:
+	egrep -v "${type}/features/|${type}/plugins/" ${ASSEMBLY_MNF} | \
+		sed -e "s,^${type}/,," > ${OFILES_LIST}
+
+	p2jars=0
+	ISMP_ASSEMBLY_TYPE="ST"
+	ZIP_ASSEMBLY_TYPE="ST"
+	_ASSEMBLY_TYPE="Standard"
+
+	if [ ${p2flag} -eq 1 ] ; then
+		if [ ${DUAL} -eq 1 ] ; then
+			if [ "${_atype}" = "dual" ] ; then
+				p2jars=1
+				_ASSEMBLY_TYPE="P2"
+				ISMP_ASSEMBLY_TYPE="P2"
+				ZIP_ASSEMBLY_TYPE="P2"
+			fi
+		else
+			if [ "${_atype}" = "p2" ] ; then
+				p2jars=1
+				_ASSEMBLY_TYPE="P2"
+				ISMP_ASSEMBLY_TYPE="P2"
+				ZIP_ASSEMBLY_TYPE="P2"
+			fi
+		fi
+	fi
+
+	[ ${zflag} -eq 1 ] && ISMP_ASSEMBLY_TYPE="NAV"
+	[ ${iflag} -eq 1 ] && ZIP_ASSEMBLY_TYPE="NAV"
+
+	case ${_atype} in
+	dual)
+		ISMP_DUAL_ASSEMBLY_TYPE="${ISMP_ASSEMBLY_TYPE}"
+		ZIP_DUAL_ASSEMBLY_TYPE="${ZIP_ASSEMBLY_TYPE}"
+		export ISMP_DUAL_ASSEMBLY_TYPE ZIP_DUAL_ASSEMBLY_TYPE
+		;;
+	p2)
+		ISMP_P2_ASSEMBLY_TYPE="${ISMP_ASSEMBLY_TYPE}"
+		ZIP_P2_ASSEMBLY_TYPE="${ZIP_ASSEMBLY_TYPE}"
+		export ISMP_P2_ASSEMBLY_TYPE ZIP_P2_ASSEMBLY_TYPE
+		;;
+	*)
+		ISMP_REGULAR_ASSEMBLY_TYPE="${ISMP_ASSEMBLY_TYPE}"
+		ZIP_REGULAR_ASSEMBLY_TYPE="${ZIP_ASSEMBLY_TYPE}"
+		export ISMP_REGULAR_ASSEMBLY_TYPE ZIP_REGULAR_ASSEMBLY_TYPE
+		;;
+	esac
+
+	if [ ${p2jars} -eq 1 ] ; then
+		_msg b "Adding P2 Support jar files (${P2_JARS})"
+		for j in ${P2_JARS} ; do
+			echo ${j} >> ${OFILES_LIST}
+		done
+	fi
+
+	_msg b Setting Assembly Working Directory
+
+	_awd="`grep \"^# awd: \" \"${MANIFEST}\" | tail -1`"
+
+	if [ ${p2flag} -eq 1 ] ; then
+		case ${_atype} in
+		dual)
+			awd="`echo ${_awd} | tail -1 | cut -d' ' -f3`/${ECLIPSE_RU}/jar/${type}"
+			;;
+		p2)
+			awd="`echo ${_awd} | tail -1 | cut -d' ' -f3`/jar/${type}"
+			;;
+		*)
+			awd="`echo ${_awd} | tail -1 | cut -d' ' -f3`/${type}"
+			;;
+		esac
+	else
+		if [ "${_atype}" = "dual" ] ; then
+			awd="`echo ${_awd} | tail -1 | cut -d' ' -f3`/${ECLIPSE_RU}/${type}"
+		else
+			awd="`echo ${_awd} | tail -1 | cut -d' ' -f3`/${type}"
+		fi
+	fi
+
+	_msg e "Set Assembly Working Directory for ${_ASSEMBLY_TYPE} Support: ${awd}"
+
+	[ -d ${awd} ] || _exit 7 ASSEMBLY_FAILED "Assembly Project Working Copy" "${awd}"
+
+	[ -d ${awd}/eclipse ] && awd="${awd}/eclipse"
+
+	grep "^${type}/" "${MANIFEST}" | egrep -v "^# |\.cat$|\|asm.*$" > ${ASSEMBLY_MNF}.tmp
+
+	# excluded feature list:
+	diff ${ASSEMBLY_MNF}.tmp ${ASSEMBLY_MNF} | grep "^< ${type}/features/" | \
+		sed -e "s,^< ${type}/features/,," > ${_FEATURE_LIST}
+
+	# excluded plugin list:
+	diff ${ASSEMBLY_MNF}.tmp ${ASSEMBLY_MNF} | grep "^< ${type}/plugins/" | \
+		sed -e "s,^< ${type}/plugins/,," > ${_PLUGIN_LIST}
+
+	# excluded other files list:
+	diff ${ASSEMBLY_MNF}.tmp ${ASSEMBLY_MNF} | grep "^< ${type}/" | \
+		sed -e "s,^< ${type}/,," | egrep -v "^features/|^plugins/" > ${_OFILES_LIST}
+
+	/bin/rm -f ${ASSEMBLY_MNF}.tmp
+
+	#
+	# features must be unpacked in extension site format
+	#
+
+	[ -d ${EXPORT_DIR} ] && /bin/rm -rf ${EXPORT_DIR}
+
+	[ -d ${EXPORT_DIR} ] && _exit 18 ASSEMBLY_FAILED remove ${EXPORT_DIR}
+
+	mkdir -p ${EXPORT_DIR}
+
+	chmod -R ug+w ${EXPORT_DIR}
+
+	mkdir -p ${EXPORT_DIR}/features ${EXPORT_DIR}/plugins
+
+	_status_twc
+
+	_update_twc
+
+	if [ -d ${ASSEMBLY_WC} ] ; then
+		_status_awc
+	fi
+
+	_update_awc ${_atype}
+
+	(
+	echo "#"
+	echo "# ${DOLLAR}HeadURL${DOLLAR}"
+	echo "# ${DOLLAR}Revision${DOLLAR}"
+	echo "# ${DOLLAR}Date${DOLLAR}"
+	echo "#"
+	echo "# Copyright(c) 2008-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+	echo "#"
+	echo "# `basename ${ASSEMBLY_LOG}`: Release Units Assembly Log"
+	echo "#"
+
+	_msg b Building ${_ASSEMBLY_TYPE} ${BUILD_TYPE} ${__ASSEMBLY_TYPE} Assembly
+
+	echo "#### Release Unit Name                = <${UNITNAME}>"
+	echo "#### Feature ID                       = <${feature}>"
+	echo "####"
+	echo "#### Build Type                       = <${BUILD_TYPE}>"
+	echo "####"
+	echo "#### Release Unit Type                = <${_RU_TYPE}>"
+	echo "####"
+	echo "#### Version Major                    = <${VERSION_MAJOR}>"
+	echo "#### Version Minor                    = <${VERSION_MINOR}>"
+	echo "#### Version Maintenance              = <${VERSION_MAINT}>"
+	echo "#### Version Update                   = <${VERSION_UPDATE}>"
+	echo "####"
+	echo "#### Assembly Project Working Copy    = <${ASSEMBLY_WC}>"
+	echo "####"
+	echo "#### Assembly Type                    = <${_ASSEMBLY_TYPE}>"
+	echo "####"
+	echo "#### Assembly Project  Revision       = <${IREV}>"
+	echo "#### Assembly Template Revision       = <${TREV}>"
+	echo "####"
+	echo "#### Import Directory                 = <${awd}>"
+	echo "####"
+	echo "#### Export Directory                 = <${EXPORT_DIR}>"
+	echo "####"
+	echo "#### ISMP Assembly Gallery            = <${ISMP_GALLERY}>"
+	echo "#### ISMP Assembly Archive            = <${ISMP_ASM_ARCHIVE}>"
+	echo "#### ISMP Assembly Archive (HTTP)     = <${_ISMP_ASM_ARCHIVE}>"
+	echo "####"
+	echo "#### Zip Assembly Gallery             = <${ZIP_GALLERY}>"
+	echo "#### Zip Assembly Archive             = <${ZIP_ASM_ARCHIVE}>"
+	echo "#### Zip Assembly Archive (HTTP)      = <${_ZIP_ASM_ARCHIVE}>"
+	echo "####"
+
+	if [ -s ${FEATURE_LIST} ] ; then
+		_msg b Listing Included Features
+		cat ${FEATURE_LIST}
+	fi
+
+	if [ -s ${_FEATURE_LIST} ] ; then
+		_msg b Listing Excluded Features
+		cat ${_FEATURE_LIST}
+	fi
+
+	if [ -s ${PLUGIN_LIST} ] ; then
+		_msg b Listing Included Plugins
+		cat ${PLUGIN_LIST}
+	fi
+
+	if [ -s ${_PLUGIN_LIST} ] ; then
+		_msg b Listing Excluded Plugins
+		cat ${_PLUGIN_LIST}
+	fi
+
+	if [ -s ${OFILES_LIST} ] ; then
+		_msg b Listing Other Files Included
+		cat ${OFILES_LIST}
+	fi
+
+	if [ -s ${_OFILES_LIST} ] ; then
+		_msg b Listing Other Files Excluded
+		cat ${_OFILES_LIST}
+	fi
+
+	_msg b Copying Features
+
+	fdir="${awd}/features"
+
+	cat ${FEATURE_LIST} | while read f ; do
+		_f="`echo ${f} | sed -e 's,\.jar$,,'`"
+		if [ ${p2jars} -eq 1 ] ; then
+			if [ -f ${fdir}/${f} ] ; then
+				echo "#### PACKED \"${f}\""
+				cp -rp ${fdir}/${f} ${EXPORT_DIR}/features/${f}
+				continue
+			fi
+			echo "#### SKIPPING \"${f}\""
+			continue
+		fi
+		if [ -f ${fdir}/${f} ] ; then
+			echo "#### UNPACKING \"${f}\""
+			mkdir ${EXPORT_DIR}/features/${_f}
+			cd ${EXPORT_DIR}/features/${_f}
+			jar xvf ${fdir}/${f}
+			continue
+		fi
+		if [ -d ${fdir}/${_f} ] ; then
+			echo "#### UNPACKED \"${_f}\""
+			cp -rp ${fdir}/${_f} ${EXPORT_DIR}/features/${_f}
+			continue
+		fi
+		echo "#### SKIPPING \"${f}\""
+	done
+
+	_msg b Copying Plugins
+
+	pdir="${awd}/plugins"
+
+	cat ${PLUGIN_LIST} | while read p ; do
+		_p="`echo ${p} | sed -e 's,\.jar,,'`"
+		if [ -f ${pdir}/${p} ] ; then
+			echo "#### PACKED \"${p}\""
+			cp -p ${pdir}/${p} ${EXPORT_DIR}/plugins/${p}
+			continue
+		fi
+		if [ -d ${pdir}/${_p} ] ; then
+			echo "#### UNPACKED \"${_p}\""
+			cp -rp ${pdir}/${_p} ${EXPORT_DIR}/plugins/${_p}
+			continue
+		fi
+		echo "#### SKIPPING \"${p}\""
+	done
+
+	if [ -s ${OFILES_LIST} ] ; then
+		_msg b Copying Other Files
+		cd ${awd}
+		cat ${OFILES_LIST} | cpio -pdvmu ${EXPORT_DIR}
+	fi
+
+	cd ${ASSEMBLY_WC} || __exit 1
+
+	ismp_galdir="${ISMP_GALLERY}/${zip_pfx}_${_feature}/${UNIT_CV}.${VERSION_UPDATE}"
+	zip_galdir="${ZIP_GALLERY}/${_feature}/${UNIT_CV}.${VERSION_UPDATE}"
+
+	_ismp_galdir="`echo ${ismp_galdir} | \
+		sed -e \"s,^${TSI_ROOT}/,${dlash}${dlash}builder${dlash}root${dlash},\" \
+		    -e \"s,${slash},${dlash},g\"`"
+	_zip_galdir="`echo ${zip_galdir} | \
+		sed -e \"s,^${TSI_ROOT}/,${dlash}${dlash}builder${dlash}root${dlash},\" \
+		    -e \"s,${slash},${dlash},g\"`"
+
+	assembly_extra=""
+	for f in ${ASSEMBLY_EXTRA} ; do
+		[ -f "${UNIT_WC}/features/${FEATURE}/${f}" ] && \
+		assembly_extra="${assembly_extra} ${f}"
+	done
+
+	if [ "${assembly_extra}" != "" ] ; then
+		_msg b Copying Extra Files
+		for f in ${assembly_extra} ; do
+			cp -p "${UNIT_WC}/features/${FEATURE}/${f}" "${ASSEMBLY_WC}/${f}"
+		done
+		ls -l ${assembly_extra}
+	fi
+
+	_msg b Performing the Actual Build
+	echo "####"
+	echo "#### Command Line = <ant ${ASM_OPTS}>"
+	echo "####"
+	echo
+
+	ant ${ASM_OPTS}
+
+	_exit=${?}
+
+	if [ ${_exit} -eq 0 ] ; then
+		_msg e Actual Build Completed
+	else
+		__exit 2
+	fi
+
+	# clean up the gallery/version if it exists:
+
+	[ -d ${ismp_galdir} ] && \
+		_msg b Removing ISMP Assembly Gallery \"${ismp_galdir}\" && \
+		/bin/rm -rf ${ismp_galdir}
+	[ -d ${zip_galdir} ] && \
+		_msg b Removing Zip Assembly Gallery \"${zip_galdir}\" && \
+		/bin/rm -rf ${zip_galdir}
+
+	if [ -f ${ASSEMBLY_WC}/is-output.log ] ; then
+
+		_msg b Listing Ant Log File
+
+		echo "#### ${ASSEMBLY_WC}"
+		echo "####"
+		echo "#### ${_ASSEMBLY_WC}"
+		echo "####"
+		echo
+
+		( cd ${ASSEMBLY_WC} ; ls -l is-output.log )
+
+	fi
+
+	if [ -f "${ISMP_ASM_ARCHIVE}/${assembly_zip}" ] ; then
+
+		cd ${ISMP_ASM_ARCHIVE}
+
+		if [ ${Tflag} -eq 0 ] ; then
+
+			_msg b "Adjusting Permissions (ugo-w)"
+
+			chmod ugo-w "${assembly_zip}"
+
+		fi
+
+		_msg b Listing ISMP Assembly ${BUILD_TYPE} Archive
+
+		echo "#### ${ISMP_ASM_ARCHIVE}"
+		echo "####"
+		if [ "${ISMP_ASM_ARCHIVE}" != "${_ISMP_ASM_ARCHIVE}" ] ; then
+			echo "#### ${_ISMP_ASM_ARCHIVE}"
+			echo "####"
+		fi
+		echo
+
+		ls -l "${assembly_zip}"
+
+	else
+		ISMP_ASSEMBLY_TYPE="NAV"
+	fi
+
+	if [ -f "${ZIP_ASM_ARCHIVE}/${assembly_zip}" ] ; then
+
+		cd ${ZIP_ASM_ARCHIVE}
+
+		if [ ${Tflag} -eq 0 ] ; then
+
+			_msg b "Adjusting Permissions (ugo-w)"
+
+			chmod ugo-w "${assembly_zip}"
+
+		fi
+
+		_msg b Listing Zip Assembly ${BUILD_TYPE} Archive
+
+		echo "#### ${ZIP_ASM_ARCHIVE}"
+		echo "####"
+		if [ "${ZIP_ASM_ARCHIVE}" != "${_ZIP_ASM_ARCHIVE}" ] ; then
+			echo "#### ${_ZIP_ASM_ARCHIVE}"
+			echo "####"
+		fi
+		echo
+
+		ls -l "${assembly_zip}"
+
+	else
+		ZIP_ASSEMBLY_TYPE="NAV"
+	fi
+
+	_assembly_hst
+
+	# clean up temporary files:
+
+	/bin/rm -rf ${FEATURE_LIST} ${PLUGIN_LIST} ${OFILES_LIST} \
+		    ${_FEATURE_LIST} ${_PLUGIN_LIST} ${_OFILES_LIST} \
+		    ${EXPORT_DIR}
+
+	__exit 0
+	) 2>&1 | tee -a ${_ASSEMBLY_LOG}
+
+	cp -p "${_ASSEMBLY_LOG}" ${LOGD}/`basename ${ASSEMBLY_LOG}`
+
+	asm_ok="`tail -1 ${_ASSEMBLY_LOG} | cut -d'=' -f2`"
+	[ ${asm_ok} -ne 0 ] && _exit 19 ASSEMBLY_FAILED "${__MANIFEST}"
+}
+
+_notify ()
+{
+	_msg b Preparing Notification
+	__BUILDER_LOG="`echo ${LOGD}/\`basename ${BUILDER_LOG}\` | \
+		sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+	export __BUILDER_LOG
+	__NOTIFY_LOG="`echo ${LOGD}/\`basename ${NOTIFY_LOG}\` | \
+		sed -e \"s,^${__CANDIDATES_ROOT}/,${DIST_ROOT}/${_CANDIDATES_ROOT}/,\"`"
+	export __NOTIFY_LOG
+	(
+	echo "Hi all!"
+	echo
+	echo "${__MANIFEST} (${SVN_CURRENT}) is now available:"
+	echo
+	echo "Build Type: ${BUILD_TYPE}"
+	echo
+	if [ ${pflag} -eq 1 ] ; then
+		echo "Published on: ${_PSITE}"
+		echo
+	fi
+	if [ ${DUAL} -eq 1 ] ; then
+		_atype=" (*** DUAL ***)"
+	else
+		_atype=""
+	fi
+	if [ ${p2flag} -eq 1 ] ; then
+		p2="*** P2 ***"
+	else
+		p2="*** ST ***"
+	fi
+	echo "Feature ID${_atype}: ${FEATURE}"
+	echo
+	echo "RU Automation Backend: ${_BUILDER_VERSION}"
+	echo
+	echo "EC Commander Resource: ${ECCR}"
+	echo
+	echo "Build Machine: ${UNAME_N}"
+	echo
+	if [ ${aflag} -eq 1 ] ; then
+		echo "Assembly Support: ${p2}"
+		echo
+	fi
+	echo "Tools Boilerplate Version: ${TOOLS_BPV} (${TOOLS_NAME})"
+	echo
+	echo " javacSource: ${JAVACSOURCE}"
+	echo " JDK Version: ${JDK_VERSION}"
+	echo "Java Classes: ${JAVA_CLASSES}"
+	echo
+	case ${FEATURE} in
+	"com.tibco.tibcoxml.tra")
+		echo "Builder:"
+		echo
+		echo "	${dlash}builder/root/tibco/txml/${UNITVERSION}/L"
+		;;
+	"com.tibco.gxml.tra")
+		echo "Builder:"
+		echo
+		echo "	${dlash}builder/root/tibco/gxml/${UNITVERSION}/L"
+		;;
+	"com.tibco.xmlcanon.bwdav.feature")
+		echo "Builder:"
+		echo
+		echo "	${dlash}builder/root/tibco/davstore/${UNITVERSION}/L"
+		;;
+	*)
+		echo "Candidates:"
+		echo
+		for c in `echo ${CANDIDATES_LIST} | sed -e 's/,/ /'` ; do
+			echo "	${c}"
+		done
+		;;
+	esac
+	echo
+	echo "Source:"
+	echo
+	echo "	(@ rev ${SVN_CURRENT})	${URL}"
+	[ ${tflag} -eq 1 ] && echo "	(@ rev ${SVN_TAG})	${_TAG_URL:-UNKNOWN}"
+	echo
+	if [ ${cflag} -eq 1 ] ; then
+		echo "Changelog (svn-based):"
+		echo
+		echo "	${_CHANGELOG}.svn.html"
+		echo
+		echo "Changelog (wsvn-based):"
+		echo
+		echo "	${_CHANGELOG}.wsvn.html"
+		echo
+	fi
+	if [ ${mflag} -eq 1 ] ; then
+		echo "Metrics:"
+		echo
+		echo "	${__METRICS_LOG}"
+		echo
+	fi
+	echo "Public History: ${_TIBCO_HISTORY}"
+	echo
+	echo "Build Log:"
+	echo
+	echo "	${__BUILDER_LOG}"
+	echo
+	echo "Notification:"
+	echo
+	echo "	${__NOTIFY_LOG}"
+	echo
+	if [ ${Pflag} -eq 0 ] ; then
+		echo "Manifest:"
+		if [ ${Iflag} -eq 1 ] ; then
+			__manifest="${_MANIFEST}"
+		else
+			__manifest="`echo ${_MANIFEST} | sed -e \"s, ,%20,g\"`"
+		fi
+		echo
+		echo "	${_LOGD}/${__manifest}.txt"
+		echo
+	fi
+	if [ ${aflag} -eq 1 ] ; then
+		_aa=0
+		if [ \( -f ${ISMP_ASM_ARCHIVE}/${ASSEMBLY_ZIP} \) \
+		  -o \( -f ${ISMP_ASM_ARCHIVE}/${ASSEMBLYD_ZIP} \) \
+		  -o \( -f ${ISMP_ASM_ARCHIVE}/${ASSEMBLYP_ZIP} \) ] ; then
+			_aa=1
+			echo "ISMP Assembly ${BUILD_TYPE} Archive:"
+			echo
+			echo "	${_ISMP_ASM_ARCHIVE}"
+			echo
+			cd ${ISMP_ASM_ARCHIVE}
+			[ -f ${ASSEMBLY_ZIP} ] && \
+				ls -l ${ASSEMBLY_ZIP} | sed -e "s,^,	\[${ISMP_REGULAR_ASSEMBLY_TYPE}\] ,"
+			[ -f ${ASSEMBLYD_ZIP} ] && \
+				ls -l ${ASSEMBLYD_ZIP} | sed -e "s,^,	\[${ISMP_DUAL_ASSEMBLY_TYPE}\] ,"
+			[ -f ${ASSEMBLYP_ZIP} ] && \
+				ls -l ${ASSEMBLYP_ZIP} | sed -e "s,^,	\[${ISMP_P2_ASSEMBLY_TYPE}\] ,"
+		fi
+		[ ${_aa} -eq 1 ] && echo
+		_aa=0
+		if [ \( -f ${ZIP_ASM_ARCHIVE}/${ASSEMBLY_ZIP} \) \
+		  -o \( -f ${ZIP_ASM_ARCHIVE}/${ASSEMBLYD_ZIP} \) \
+		  -o \( -f ${ZIP_ASM_ARCHIVE}/${ASSEMBLYP_ZIP} \) ] ; then
+			_aa=1
+			echo "Zip Assembly ${BUILD_TYPE} Archive:"
+			echo
+			echo "	${_ZIP_ASM_ARCHIVE}"
+			echo
+			cd ${ZIP_ASM_ARCHIVE}
+			[ -f ${ASSEMBLY_ZIP} ] && \
+				ls -l ${ASSEMBLY_ZIP} | sed -e "s,^,	\[${ZIP_REGULAR_ASSEMBLY_TYPE}\] ,"
+			[ -f ${ASSEMBLYD_ZIP} ] && \
+				ls -l ${ASSEMBLYD_ZIP} | sed -e "s,^,	\[${ZIP_DUAL_ASSEMBLY_TYPE}\] ,"
+			[ -f ${ASSEMBLYP_ZIP} ] && \
+				ls -l ${ASSEMBLYP_ZIP} | sed -e "s,^,	\[${ZIP_P2_ASSEMBLY_TYPE}\] ,"
+		fi
+		[ ${_aa} -eq 1 ] && echo
+	fi
+	echo "Please let us know if you have any questions or problems."
+	echo
+	echo "<${RUSER}@tibco.com>"
+	) 2>&1 | tee ${_NOTIFY_LOG}
+	cp -p "${_NOTIFY_LOG}" ${LOGD}/`basename ${NOTIFY_LOG}`
+	_msg e Notification Completed
+}
+
+_pdms ()
+{
+	_msg b Preparing Data for PDMS
+
+	echo "PDMS_STATUS=${EXIT_STATUS}"
+	echo "PDMS_RELEASE_UNIT=${UNITNAME}"
+	echo "PDMS_VERSION=${UNIT_CV}"
+	echo "PDMS_BUILD_NO=${UNIT_CBN}"
+	echo "PDMS_FEATURE_ID=${FEATURE}"
+	echo "PDMS_ACTUAL_BUILD_DATE=${UNIT_DSTAMP}"
+	echo "PDMS_SVN_DEPOT=${URL}"
+	echo "PDMS_REVISION=${SVN_CURRENT}"
+	echo "PDMS_BUILD_LOCATION_URL=${CANDIDATES_LIST}"
+	echo "PDMS_BUILDER_LOG=${PDMS_BUILDER_LOG}"
+	echo "PDMS_TOOLS_LOG=${_TOOLS_LOG}"
+	echo "PDMS_ERM_LOG=${PDMS_ERM_LOG}"
+	if [ "${PDMS_NOTES}" = "" ] ; then
+		pn="${LOGD}/`basename ${NOTIFY_LOG}`"
+		_pn="${_LOGD}/`basename ${NOTIFY_LOG}`"
+		[ "${_CANDIDATES}" != "" ] && [ -f ${pn} ] && PDMS_NOTES="${_pn}"
+	fi
+	echo "PDMS_NOTES=${PDMS_NOTES}"
+	_msg e Data Preparation for PDMS Completed
+}
+
+# Timeout (in [s] - approximate) to obtain a lock
+# so that logs can be exclusively committed:
+
+PUBLISH_TIMEOUT=300
+RECORDS_TIMEOUT=120
+export PUBLISH_TIMEOUT RECORDS_TIMEOUT
+
+_lock ()
+{
+	_ltype="${1}"
+	case ${_ltype} in
+		publish)
+			_locktype="Publish"
+			_lockfile="${PUBLISH_LCK}"
+			__lockfile="${_PUBLISH_LCK}"
+			_logfile="${PUBLISH_LOG}"
+			_lockhst="${_PLOCK_HST}"
+			_timeout="${PUBLISH_TIMEOUT}"
+			_lckfcommit="_PLOCK_HST_commit=1"
+			;;
+		records)
+			_locktype="Records"
+			_lockfile="${RECORDS_LCK}"
+			__lockfile="${_RECORDS_LCK}"
+			_logfile="${_RECORDS_LOG}"
+			_lockhst="${_RLOCK_HST}"
+			_timeout="${RECORDS_TIMEOUT}"
+			_lckfcommit="_RLOCK_HST_commit=1"
+			;;
+		recordsf)
+			_locktype="Records"
+			_lockfile="${RECORDS_LCK}"
+			__lockfile="${_RECORDS_LCK}"
+			_logfile="${_RECORDS_LOG}"
+			_timeout="${RECORDS_TIMEOUT}"
+			;;
+		*)
+			return
+			;;
+	esac
+	(
+	_msg b "Obtaining ${_locktype} Lock (${_lockfile})"
+	t=1
+	_b="`basename ${_lockfile}`"
+	__islocked="${_b} locked by user ${USER}"
+	while [ ${t} -le ${_timeout} ] ; do
+		_lockdate="`date '+%Y-%m-%d-%H%M'`"
+		if [ "${_ltype}" = "recordsf" ] ; then
+			_locklog="${__UNITNAME:-UNKNOWN}|${UNIT_CV:-UNKNOWN}.${_UNIT_CBN:-UNKNOWN}|${FEATURE:-UNKNOWN}|${_lockdate}|${UNAME_N:-UNKNOWN}|${t}|${USER:-UNKNOWN}"
+		else
+			_locklog="${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${_lockdate}|${UNAME_N}|${t}|${USER}"
+		fi
+		_lockmsg="${_locktype} Locking Attempt: ${t} - ${_locklog}"
+		echo "${_lockmsg}"
+		_islocked="`svn lock ${_lockfile} 2>&1 | sed -e \"s,',,g\" -e \"s,\.$,,\"`"
+		if [ "${_islocked}" = "${__islocked}" ] ; then
+			touch ${__lockfile}.tmp
+			[ ${t} -gt 1 ] && _plural="s"
+			_msg e ${_locktype} Locked After ${t} Attempt${_plural}
+			if [ "${_ltype}" != "recordsf" ] ; then
+				_msg b Updating ${_locktype} Locks History File
+				echo "${_locklog}" | tee ${_lockhst}
+				echo
+				echo "${_lckfcommit}" >> ${_COMMIT_CFG}
+			fi
+			break
+		else
+			sleep 1
+			t=`expr ${t} + 1`
+		fi
+	done
+	if [ ! -f ${__lockfile}.tmp ] ; then
+		[ ${_timeout} -gt 1 ] && _plural="s"
+		_msg e "Could not Obtain ${_locktype} Lock After ${_timeout} Attempt${_plural} (${PSTAMP})"
+		echo "####"
+		echo "#### ${_locklog}"
+		echo "####"
+		if [ "${_ltype}" = "records" ] ; then
+			echo "#### Records must be manually committed and can be found under:"
+			echo "####"
+			echo "####" ${LOGD}
+			echo "####"
+		fi
+	fi
+	) 2>&1 | tee ${__lockfile}
+	[ "${_ltype}" = "records" ] && cat ${__lockfile} >> ${_logfile}
+	if [ -f ${__lockfile}.tmp ] ; then
+		/bin/rm -f ${__lockfile} ${__lockfile}.tmp
+	else
+		if [ "${_ltype}" = "publish" ] ; then
+			/bin/rm -f ${__lockfile}
+			_exit 26 PUBLISH_FAILED "${UNITNAME}"
+		fi
+	fi
+}
+
+_unlock ()
+{
+	_ltype="${1}"
+	case ${_ltype} in
+		publish)
+			_locktype="Publish"
+			_lockfile="${PUBLISH_LCK}"
+			;;
+		records|recordsf)
+			_locktype="Records"
+			_lockfile="${RECORDS_LCK}"
+			;;
+		*)
+			return
+			;;
+	esac
+	_msg b "Releasing ${_locktype} Lock (${_lockfile})"
+	svn unlock ${_lockfile} 2>&1
+	_msg e ${_locktype} Unlocked
+}
+
+_records ()
+{
+	(
+	_msg b Starting Record Keeping Procedures
+	echo "svn commit -m \"${__MANIFEST}\" \\" > ${_COMMIT_SCR}
+	_msg b Detecting Records
+	) 2>&1 | tee ${_RECORDS_LOG}
+
+	if [ -f ${_COMMIT_CFG} ] ; then
+		[ ${rlflag} -eq 1 ] && _lock records
+		. ${_COMMIT_CFG}
+	fi
+
+	[ -f ${_RECORDS_LCK} ] && return
+
+	(
+
+	_cflag=0
+
+	cd ${MNF_ROOT}
+
+	#### vvvv FOR DEBUGGING PURPOSES ONLY !!!! vvvv ####
+
+	#### comment *IN* all the record files that you do
+	#### *NOT* want to be svn committed during testing:
+	#### Do *NOT* check in uncommented lines in this section !!!
+
+	# _MANIFEST_commit=0
+	# _HFILE_commit=0
+	# _MFILE_commit=0
+	# _SFILE_commit=0
+	# _TAG_HST_commit=0
+	# _PROJECT_HST_commit=0
+	# _ASSEMBLY_HST_commit=0
+	# _PLOCK_HST_commit=0
+	# _RLOCK_HST_commit=0
+	# _BUILDER_LOG_commit=0
+	# _SIGN_HST_commit=0
+	# _PROJECT_LOG_commit=0
+	# _SIGN_LOG_commit=0
+	# _ASSEMBLY_LOG_commit=0
+	# _METRICS_LOG_commit=0
+	# _NOTIFY_LOG_commit=0
+	# _TIMING_HST_commit=0
+
+	#### ^^^^ FOR DEBUGGING PURPOSES ONLY !!!! ^^^^ ####
+
+	if [ \( ${_MANIFEST_commit} -eq 1 \) -a \( -f "${_MANIFEST}.txt" \) ] ; then
+		_msg b Adding Manifest
+		svn update --force "${_MANIFEST}.txt"
+		svn add "${_MANIFEST}.txt"
+		_cflag=1
+		echo "\"`basename ${MNF_ROOT}`/${_MANIFEST}.txt\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	cd ${HST_ROOT}
+
+	if [ \( ${_HFILE_commit} -eq 1 \) -a \( -f "${_HFILE}" \) ] ; then
+		_msg b Updating ${BUILD_TYPE} Build History File
+		svn update --force "`basename ${HFILE}`"
+		tail -1 ${_HFILE} >> ${HFILE}
+		/bin/rm -f ${_HFILE}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${HFILE}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_SIGN_HST_commit} -eq 1 \) -a \( -f "${_SIGN_HST}" \) ] ; then
+		_msg b Updating ${BUILD_TYPE} Sign History File
+		svn update --force "`basename ${SIGN_HST}`"
+		cat ${_SIGN_HST} >> ${SIGN_HST}
+		/bin/rm -f ${_SIGN_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${SIGN_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_MFILE_commit} -eq 1 \) -a \( -f "${_MFILE}" \) ] ; then
+		_msg b Updating ${BUILD_TYPE} Build Metrics History File
+		svn update --force "`basename ${MFILE}`"
+		tail -1 ${_MFILE} >> ${MFILE}
+		/bin/rm -f ${_MFILE}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${MFILE}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_SFILE_commit} -eq 1 \) -a \( -f "${_SFILE}" \) ] ; then
+		_msg b Updating ${BUILD_TYPE} Build Source History File
+		svn update --force "`basename ${SFILE}`"
+		tail -1 ${_SFILE} >> ${SFILE}
+		/bin/rm -f ${_SFILE}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${SFILE}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_TAG_HST_commit} -eq 1 \) -a \( -f "${_TAG_HST}" \) ] ; then
+		_msg b Updating ${BUILD_TYPE} Build Tag History File
+		svn update --force "`basename ${TAG_HST}`"
+		tail -1 ${_TAG_HST} >> ${TAG_HST}
+		/bin/rm -f ${_TAG_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${TAG_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_PROJECT_HST_commit} -eq 1 \) -a \( -f "${_PROJECT_HST}" \) ] ; then
+		_msg b Updating Assembly Project History File
+		svn update --force "`basename ${PROJECT_HST}`"
+		cat ${_PROJECT_HST} >> ${PROJECT_HST}
+		/bin/rm -f ${_PROJECT_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${PROJECT_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_ASSEMBLY_HST_commit} -eq 1 \) -a \( -f "${_ASSEMBLY_HST}" \) ] ; then
+		_msg b Updating Assembly History File
+		svn update --force "`basename ${ASSEMBLY_HST}`"
+		cat ${_ASSEMBLY_HST} >> ${ASSEMBLY_HST}
+		/bin/rm -f ${_ASSEMBLY_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${ASSEMBLY_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_PLOCK_HST_commit} -eq 1 \) -a \( -f "${_PLOCK_HST}" \) ] ; then
+		_msg b Updating Publish Locks History File
+		svn update --force "`basename ${PLOCK_HST}`"
+		cat ${_PLOCK_HST} >> ${PLOCK_HST}
+		/bin/rm -f ${_PLOCK_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${PLOCK_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_RLOCK_HST_commit} -eq 1 \) -a \( -f "${_RLOCK_HST}" \) ] ; then
+		_msg b Updating Records Locks History File
+		svn update --force "`basename ${RLOCK_HST}`"
+		cat ${_RLOCK_HST} >> ${RLOCK_HST}
+		/bin/rm -f ${_RLOCK_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${RLOCK_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_TIMING_HST_commit} -eq 1 \) -a \( -f "${_TIMING_HST}" \) ] ; then
+		_msg b Updating Timing History File
+		svn update --force "`basename ${TIMING_HST}`"
+		cat ${_TIMING_HST} >> ${TIMING_HST}
+		/bin/rm -f ${_TIMING_HST}
+		_cflag=1
+		echo "\"`basename ${HST_ROOT}`/`basename ${TIMING_HST}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	cd ${LOG_ROOT}
+
+	if [ \( ${_BUILDER_LOG_commit} -eq 1 \) -a \( -f "${_BUILDER_LOG}" \) ] ; then
+		_msg b Updating Builder Log File
+		svn update --force "`basename ${BUILDER_LOG}`"
+		cp ${_BUILDER_LOG} ${BUILDER_LOG}
+		_cflag=1
+		echo "\"`basename ${LOG_ROOT}`/`basename ${BUILDER_LOG}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_SIGN_LOG_commit} -eq 1 \) -a \( -f "${_SIGN_LOG}" \) ] ; then
+		_msg b Updating Sign Log File
+		svn update --force "`basename ${SIGN_LOG}`"
+		cp ${_SIGN_LOG} ${SIGN_LOG}
+		_cflag=1
+		echo "\"`basename ${LOG_ROOT}`/`basename ${SIGN_LOG}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_PROJECT_LOG_commit} -eq 1 \) -a \( -f "${_PROJECT_LOG}" \) ] ; then
+		_msg b Updating Assembly Project Log File
+		svn update --force "`basename ${PROJECT_LOG}`"
+		mv ${_PROJECT_LOG} ${PROJECT_LOG}
+		_cflag=1
+		echo "\"`basename ${LOG_ROOT}`/`basename ${PROJECT_LOG}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_ASSEMBLY_LOG_commit} -eq 1 \) -a \( -f "${_ASSEMBLY_LOG}" \) ] ; then
+		_msg b Updating Assembly Log File
+		svn update --force "`basename ${ASSEMBLY_LOG}`"
+		mv ${_ASSEMBLY_LOG} ${ASSEMBLY_LOG}
+		_cflag=1
+		echo "\"`basename ${LOG_ROOT}`/`basename ${ASSEMBLY_LOG}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_METRICS_LOG_commit} -eq 1 \) -a \( -f "${_METRICS_LOG}" \) ] ; then
+		_msg b Updating Metrics Log File
+		svn update --force "`basename ${METRICS_LOG}`"
+		mv ${_METRICS_LOG} ${METRICS_LOG}
+		_cflag=1
+		echo "\"`basename ${LOG_ROOT}`/`basename ${METRICS_LOG}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	if [ \( ${_NOTIFY_LOG_commit} -eq 1 \) -a \( -f "${_NOTIFY_LOG}" \) ] ; then
+		_msg b Updating Notification Log File
+		svn update --force "`basename ${NOTIFY_LOG}`"
+		mv ${_NOTIFY_LOG} ${NOTIFY_LOG}
+		_cflag=1
+		echo "\"`basename ${LOG_ROOT}`/`basename ${NOTIFY_LOG}`\" \\" >> ${_COMMIT_SCR}
+	fi
+
+	echo "_cflag=${_cflag}" > ${_COMMIT_CFG}
+
+	) 2>&1 | tee -a ${_RECORDS_LOG}
+
+	[ -f ${_COMMIT_CFG} ] && . ${_COMMIT_CFG}
+
+	[ -f ${_BUILDER_LOG} ] && cat ${_RECORDS_LOG} >> ${_BUILDER_LOG}
+
+	cd ${BUILDER_ROOT}
+
+	if [ ${_cflag} -eq 1 ] ; then
+		_msg b Committing Records | tee ${_COMMIT_CFG}
+		if [ -f ${_BUILDER_LOG} ] ; then
+			cat ${_COMMIT_CFG} >> ${_BUILDER_LOG}
+			cp ${_BUILDER_LOG} ${BUILDER_LOG}
+		fi
+		echo >> ${_COMMIT_SCR}
+		. ${_COMMIT_SCR}
+	fi
+
+	[ ${rlflag} -eq 1 ] && _unlock records
+
+	/bin/rm -f ${_COMMIT_SCR}
+
+	_msg e Record Keeping Procedures Completed
+}
+
+_recordsf ()
+{
+	_msg b Starting Record Keeping Procedures
+
+	_namecheckf
+
+	_exit_msg="`echo \"${EXIT_MSG:-UNKNOWN}\" | sed -e \"s,^${dollar0}: ,,\"`"
+
+	echo "${__UNITNAME:-UNKNOWN}|${UNIT_CV:-${UNITVERSION:-UNKNOWN}}.${_UNIT_CBN:-${UNITBN:-UNKNOWN}}|${FEATURE:-UNKNOWN}|${OP_TYPE}|${UNIT_DSTAMP:-${DSTAMP:-UNKNOWN}}|${EXIT_CODE:-UNKNOWN}|${EXIT_STATUS:-UNKNOWN}|${_exit_msg}|${UNAME_N:-UNKNOWN}|${USER:-UNKNOWN}|${ECUSER:-UNKNOWN}|${ECEMAIL:-UNKNOWN}|${ECJOB:-UNKNOWN}|${REQUEST_ID:-UNKNOWN}" | tee ${_FAILURES_HST}
+
+	[ ${rlflag} -eq 1 ] && _lock recordsf
+
+	cd ${HST_ROOT}
+	_msg b Updating ${BUILD_TYPE} Build Failures History File
+	svn update --force "`basename ${FAILURES_HST}`"
+	cat ${_FAILURES_HST} >> ${FAILURES_HST}
+	/bin/rm -f ${_FAILURES_HST}
+
+	_msg b Committing Records
+	svn commit -m "${__MANIFEST:-UNKNOWN}" ${FAILURES_HST}
+
+	[ ${rlflag} -eq 1 ] && _unlock recordsf
+
+	_msg e Record Keeping Procedures Completed
+}
+
+_isoption ()
+{
+	case ${1} in
+		-*)
+			echo 1
+			;;
+		*)
+			echo 0
+			;;
+	esac
+}
+
+_skipoption ()
+{
+	_msg b "skipping option \"${1}\" with empty parameter" >&2
+}
+
+_svnheader ()
+{
+	echo "#"
+	echo "# ${DOLLAR}HeadURL${DOLLAR}"
+	echo "# ${DOLLAR}Revision${DOLLAR}"
+	echo "# ${DOLLAR}Date${DOLLAR}"
+	echo "#"
+	echo "# Copyright(c) 2008-${COPYRIGHT_Y} TIBCO Software Inc. All rights reserved."
+	echo "#"
+	echo "# `basename ${BUILDER_LOG}`: Release Units Build Log"
+	echo "#"
+	echo "# ${_BUILDER_VERSION}"
+	echo "#"
+	echo
+}
+
+_export ()
+{
+	(
+	echo "BUILD_TYPE=\"${BUILD_TYPE}\""
+	echo "FEATURE=\"${FEATURE}\""
+	echo "HFILE=\"${HFILE}\""
+	echo "MFILE=\"${MFILE}\""
+	echo "SFILE=\"${SFILE}\""
+	echo "LOGD=\"${LOGD}\""
+	echo "UNAME_N=\"${UNAME_N}\""
+	echo "UNITNAME=\"${UNITNAME}\""
+	echo "__UNITNAME=\"${__UNITNAME}\""
+	echo "UNIT_DSTAMP=\"${UNIT_DSTAMP}\""
+	echo "UNIT_CV=\"${UNIT_CV}\""
+	echo "_HFILE=\"${_HFILE}\""
+	echo "_MFILE=\"${_MFILE}\""
+	echo "_SFILE=\"${_SFILE}\""
+	echo "_MANIFEST=\"${_MANIFEST}\""
+	echo "_UNIT_CBN=\"${_UNIT_CBN}\""
+	echo "__MANIFEST=\"${__MANIFEST}\""
+	echo "ECCR=\"${ECCR}\""
+	echo "export BUILD_TYPE FEATURE HFILE MFILE SFILE LOGD UNAME_N UNITNAME __UNITNAME"
+	echo "export UNIT_DSTAMP UNIT_CV _HFILE _MFILE _SFILE _MANIFEST _UNIT_CBN __MANIFEST ECCR"
+	echo "rlflag=${rlflag}"
+	echo "rflag=${rflag}"
+	echo "frflag=${frflag}"
+	echo "EXIT_CODE=${EXIT_CODE}"
+	echo "EXIT_MSG=\"${EXIT_MSG}\""
+	echo "export EXIT_CODE EXIT_MSG"
+	echo "BEGIN_TIME_BUILD=\"${BEGIN_TIME_BUILD}\""
+	echo "END_TIME_BUILD=\"${END_TIME_BUILD}\""
+	echo "BEGIN_TIME_PUBLISH=\"${BEGIN_TIME_PUBLISH}\""
+	echo "END_TIME_PUBLISH=\"${END_TIME_PUBLISH}\""
+	echo "BEGIN_TIME_ASSEMBLY=\"${BEGIN_TIME_ASSEMBLY}\""
+	echo "END_TIME_ASSEMBLY=\"${END_TIME_ASSEMBLY}\""
+	echo "export BEGIN_TIME_BUILD END_TIME_BUILD"
+	echo "export BEGIN_TIME_PUBLISH END_TIME_PUBLISH"
+	echo "export BEGIN_TIME_ASSEMBLY END_TIME_ASSEMBLY"
+	echo "ECUSER=\"${ECUSER}\""
+	echo "ECEMAIL=\"${ECEMAIL}\""
+	echo "ECJOB=\"${ECJOB}\""
+	echo "export ECUSER ECEMAIL ECJOB"
+	echo "REQUEST_ID=\"${REQUEST_ID}\""
+	echo "export REQUEST_ID"
+	) > ${_EXPORT_CFG}
+}
+
+ECCR_DFL="ru_builder_1"
+ECCIR_DFL="int_ru_build"
+export ECCR_DFL ECCIR_DFL
+
+_resource ()
+{
+	if [ ! -f ${RESOURCE_CFG} ] ; then
+		if [ ${Iflag} -eq 1 ] ; then
+			_eccrdfl="${ECCIR_DFL}"
+		else
+			_eccrdfl="${ECCR_DFL}"
+		fi
+		_msg e "Could not locate EC Commander Resource Configuration File: ${RESOURCE_CFG}"
+		_msg e "Using Default Resource: ${_eccrdfl}"
+		echo ECCR="${_eccrdfl}"
+		return
+	fi
+	# Default Resource:
+	if [ ${Iflag} -eq 1 ] ; then
+		_eccrdfl="`grep \"^ECCIR_DFL=\" ${RESOURCE_CFG} | tail -1 | cut -d'=' -f2`"
+	else
+		_eccrdfl="`grep \"^ECCR_DFL=\" ${RESOURCE_CFG} | tail -1 | cut -d'=' -f2`"
+	fi
+	if [ "${URL}" = "" ] ; then
+		_msg e "Could not retrieve EC Commander Resource for empty URL"
+		_msg e "Using Default Resource: ${_eccrdfl}"
+		echo ECCR="${_eccrdfl}"
+		return
+	fi
+	_msg b "Retrieving EC Commander Resource for \"${URL}\""
+	_msg b "Resource Configuration File: ${RESOURCE_CFG}"
+	if [ ${Iflag} -eq 1 ] ; then
+		_msg e "EC Commander Resource for \"${URL}\" retrieved: ${_eccrdfl}"
+		echo ECCR="${_eccrdfl}"
+		return
+	fi
+	_match=0
+	_rlist="`egrep -v \"^#|^$|^ECCR_DFL=|^ECCIR_DFL=\" ${RESOURCE_CFG}`"
+	for _line in ${_rlist} ; do
+		_url="`echo ${_line} | cut -d'|' -f1`"
+		_eccr="`echo ${_line} | cut -d'|' -f2`"
+		__url="`echo ${URL} | sed -e \"s,^${_url}/,,\" -e \"s,^${_url}$,,\"`"
+		if [ "${__url}" != "${URL}" ] ; then
+			_msg e "Matching URL: ${_url}"
+			_match=1
+			break
+		fi
+	done
+	if [ ${_match} -eq 1 ] ; then
+		_msg e "EC Commander Resource for \"${URL}\" retrieved: ${_eccr}"
+		echo ECCR="${_eccr}"
+	else
+		_msg e "Could not retrieve EC Commander Resource for \"${URL}\""
+		_msg e "Using Default Resource: ${_eccrdfl}"
+		echo ECCR="${_eccrdfl}"
+	fi
+	echo
+}
+
+_sec2hrs ()
+{
+	_s=${1}
+	_m=0
+	_h=0
+	if [ ${_s} -ge 3600 ] ; then
+		_h=`expr ${_s} / 3600`
+		__s=`expr ${_h} \* 3600`
+		_s=`expr ${_s} - ${__s}`
+	fi
+	if [ ${_s} -ge 60 ] ; then
+		_m=`expr ${_s} / 60`
+		__s=`expr ${_m} \* 60`
+		_s=`expr ${_s} - ${__s}`
+	fi
+	echo "${_h}h${_m}m${_s}s"
+}
+
+_timing_hst ()
+{
+	_msg b Updating Timing History File ${_TIMING_HST}
+	echo "${__UNITNAME}|${UNIT_CV}.${_UNIT_CBN}|${FEATURE}|${UNIT_DSTAMP}|${TIME_TOTAL_BUILD}|${TIME_TOTAL_PUBLISH}|${TIME_TOTAL_ASSEMBLY}|${TIME_TOTAL_INFRA}|${TIME_TOTAL_OVERALL}|${ECCR}|${UNAME_N}|${USER}" | \
+		tee -a ${_TIMING_HST} | tee -a ${LOGD}/`basename ${TIMING_HST}`
+}
+
+_timing ()
+{
+	_msg b Calculating Timing
+
+	[ ${END_TIME_OVERALL}  -eq 0 ] &&  END_TIME_OVERALL=${BEGIN_TIME_OVERALL}
+	[ ${END_TIME_BUILD}    -eq 0 ] &&    END_TIME_BUILD=${BEGIN_TIME_BUILD}
+	[ ${END_TIME_PUBLISH}  -eq 0 ] &&  END_TIME_PUBLISH=${BEGIN_TIME_PUBLISH}
+	[ ${END_TIME_ASSEMBLY} -eq 0 ] && END_TIME_ASSEMBLY=${BEGIN_TIME_ASSEMBLY}
+
+	 TIME_TOTAL_OVERALL=`expr ${END_TIME_OVERALL}  - ${BEGIN_TIME_OVERALL}`
+	   TIME_TOTAL_BUILD=`expr ${END_TIME_BUILD}    - ${BEGIN_TIME_BUILD}`
+	 TIME_TOTAL_PUBLISH=`expr ${END_TIME_PUBLISH}  - ${BEGIN_TIME_PUBLISH}`
+	TIME_TOTAL_ASSEMBLY=`expr ${END_TIME_ASSEMBLY} - ${BEGIN_TIME_ASSEMBLY}`
+
+	 TIME_TOTAL_INFRA=`expr ${TIME_TOTAL_OVERALL}   - \
+				 ${TIME_TOTAL_BUILD}    - \
+				 ${TIME_TOTAL_PUBLISH}  - \
+				 ${TIME_TOTAL_ASSEMBLY}`
+	export TIME_TOTAL_INFRA
+
+	   TIME_TOTAL_BUILD="`_sec2hrs ${TIME_TOTAL_BUILD}`"
+	 TIME_TOTAL_PUBLISH="`_sec2hrs ${TIME_TOTAL_PUBLISH}`"
+	TIME_TOTAL_ASSEMBLY="`_sec2hrs ${TIME_TOTAL_ASSEMBLY}`"
+	   TIME_TOTAL_INFRA="`_sec2hrs ${TIME_TOTAL_INFRA}`"
+	 TIME_TOTAL_OVERALL="`_sec2hrs ${TIME_TOTAL_OVERALL}`"
+
+	_timing_hst
+
+	_msg e Timing OK
+}
+
+#
+# main ()
+#
+
+# Save the current directory for _exit ()
+pw="`pwd`"
+
+# Flags for locking:
+plflag=1
+rlflag=1
+
+# Flags for record commit:
+rflag=1
+frflag=1
+_MANIFEST_commit=0
+_HFILE_commit=0
+_MFILE_commit=0
+_SFILE_commit=0
+_TAG_HST_commit=0
+_PROJECT_HST_commit=0
+_ASSEMBLY_HST_commit=0
+_PLOCK_HST_commit=0
+_RLOCK_HST_commit=0
+_SIGN_HST_commit=0
+_BUILDER_LOG_commit=0
+_PROJECT_LOG_commit=0
+_ASSEMBLY_LOG_commit=0
+_METRICS_LOG_commit=0
+_NOTIFY_LOG_commit=0
+_SIGN_LOG_commit=0
+_TIMING_HST_commit=0
+
+trap "_exit 4 KILLED" 1 2 3 9 15
+
+cmdline="${bdollar0} ${*}"
+
+[ ${#} -eq 0 ] && _exit 1 NOT_ENOUGH_ARGUMENTS
+
+kflag=0
+kVflag=0
+Kflag=0
+
+aflag=1
+hflag=0
+cflag=1
+mflag=1
+tflag=1
+Tflag=0
+Iflag=0
+pflag=0
+Pflag=0
+# Disabled for now:
+# Sflag=1
+Sflag=0
+
+zflag=1
+iflag=0
+izflag=0
+
+SVN_CURRENT=""
+SVN_LATEST=""
+export SVN_CURRENT SVN_LATEST
+
+UNIT_SUBDIR=""
+TAGS_SUBDIR=""
+_UNIT_SUBDIR=""
+_TAGS_SUBDIR=""
+export UNIT_SUBDIR TAGS_SUBDIR _UNIT_SUBDIR _TAGS_SUBDIR
+
+URL=""
+FEATURE=""
+__FEATURE=""
+___FEATURE=""
+UNITNAME=""
+SVN_CURRENT=""
+CANDIDATES=""
+UNITVERSION=""
+UNITBN=""
+PFWC=""
+export URL FEATURE __FEATURE ___FEATURE UNITNAME SVN_CURRENT CANDIDATES UNITVERSION UNITBN PFWC
+
+PDMS_NOTES=""
+export PDMS_NOTES
+
+ECCR="${ECCR:-UNKNOWN}"
+export ECCR
+
+ISPUBLISHED="N"
+export ISPUBLISHED
+
+ECUSER="UNKNOWN"
+ECEMAIL="UNKNOWN"
+ECJOB="UNKNOWN"
+export ECUSER ECEMAIL ECJOB
+
+REQUEST_ID="UNKNOWN"
+export REQUEST_ID
+
+[ -d ${TMP_ROOT} ] || mkdir -p ${TMP_ROOT}
+
+_port
+
+_nodejscheck
+
+_svncheck
+
+_boot
+
+_svnheader > ${_BUILDER_LOG}
+
+(
+trap "_exit 4 KILLED" 1 2 3 9 15
+
+# Option Parser:
+
+while [ 1 ] ; do
+	case ${1} in
+	-V)
+		_exit 3 DISPLAY_VERSION
+		;;
+	-h|-\?)
+		_exit 2 DISPLAY_USAGE
+		;;
+	-res)
+		/bin/rm -f ${_ERMTAG_LOG}
+		_exit 2 DISPLAY_RESOURCE
+		;;
+	-u)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			URL="${2}"
+			_mirrors
+			URL="`echo ${URL} | sed -e \"s,^${_SVN_ROOT}/,${SVN_ROOT}/,\"`"
+			_ermtag SVN_DEPOT ${URL}
+			shift 2
+		fi
+		;;
+	-f)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			FEATURE="${2}"
+			_ermtag FEATURE_ID ${FEATURE}
+			shift 2
+		fi
+		;;
+	-n)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			UNITNAME="${2}"
+			shift 2
+		fi
+		;;
+	-r)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			if [ "${2}" = "HEAD" ] ; then
+				SVN_CURRENT="${2}"
+			else
+				SVN_CURRENT="`expr ${2} + 0 2>${DEVNULL}`"
+			fi
+			_ermtag SVN_REVISION ${SVN_CURRENT}
+			shift 2
+		fi
+		;;
+	-j)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			ECJOB="`echo ${2}`"
+			export ECJOB
+			shift 2
+		fi
+		;;
+	-U)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			ECUSER="`echo ${2}`"
+			export ECUSER
+			shift 2
+		fi
+		;;
+	-E)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			ECEMAIL="`echo ${2}`"
+			export ECEMAIL
+			shift 2
+		fi
+		;;
+	-R)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			REQUEST_ID="`echo ${2}`"
+			export REQUEST_ID
+			shift 2
+		fi
+		;;
+	-k)
+		kflag=1
+		shift 1
+		;;
+	-kV)
+		kVflag=1
+		shift 1
+		;;
+	-K)
+		Kflag=1
+		shift 1
+		;;
+	-p)
+		pflag=1
+		shift 1
+		;;
+	-v)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			UNITVERSION="${2}"
+			_ermtag EXPECTED_VERSION ${UNITVERSION}
+			shift 2
+		fi
+		;;
+	-b)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			UNITBN="${2}"
+			_ermtag EXPECTED_BUILD_NUMBER ${UNITBN}
+			shift 2
+		fi
+		;;
+	-q)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			UNITBQ="${2}"
+			_ermtag EXPECTED_BUILD_QUALIFIER ${UNITBQ}
+			shift 2
+		fi
+		;;
+	-fm)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			fflag="${2}"
+			shift 2
+		fi
+		;;
+	-zip)
+		iflag=0
+		zflag=1
+		izflag=0
+		shift 1
+		;;
+	-ismp)
+		iflag=1
+		zflag=0
+		izflag=0
+		shift 1
+		;;
+	-ismpzip)
+		iflag=0
+		zflag=0
+		izflag=1
+		shift 1
+		;;
+	-notag)
+		tflag=0
+		shift 1
+		;;
+	-nocl)
+		cflag=0
+		shift 1
+		;;
+	-nomet)
+		mflag=0
+		shift 1
+		;;
+	-noasm)
+		aflag=0
+		shift 1
+		;;
+	-norec)
+		rflag=0
+		frflag=0
+		shift 1
+		;;
+	-noplck)
+		plflag=0
+		shift 1
+		;;
+	-norlck)
+		rlflag=0
+		shift 1
+		;;
+	-nosgn)
+		Sflag=0
+		shift 1
+		;;
+	-test)
+		Tflag=1
+		tflag=0
+		pflag=0
+		rflag=0
+		frflag=0
+		Iflag=0
+		Pflag=0
+		shift 1
+		;;
+	-int)
+		Iflag=1
+		cflag=0
+		tflag=0
+		pflag=1
+		zflag=1
+		iflag=0
+		izflag=0
+		Tflag=0
+		Pflag=0
+		plflag=0
+		rlflag=0
+		shift 1
+		;;
+	-pf)
+		if [ \( "${2}" = "" \) -o \( `_isoption ${2}` -eq 1 \) ] ; then
+			_skipoption "${1}"
+			shift 1
+		else
+			Pflag=1
+			aflag=0
+			cflag=0
+			mflag=0
+			tflag=0
+			pflag=0
+			rflag=0
+			frflag=0
+			plflag=0
+			rlflag=0
+			Tflag=0
+			Iflag=0
+			PFWC="${2}"
+			shift 2
+		fi
+		;;
+	"")
+		[ "${*}" = "" ] && break
+		_skipoption "${1}"
+		shift 1
+		;;
+	*)
+		# any other option is unknown
+		_msg b "skipping unknown option \"${1}\"" >&2
+		shift 1
+		;;
+	esac
+done
+
+[ "${URL}" = "" ] && _exit 20 INVALID_SVN_DEPOT URL
+
+[ "${FEATURE}" = "" ] && _exit 20 INVALID_FEATURE_ID FEATURE
+
+[ ${Tflag} -eq 1 ] && tflag=0 && pflag=0 && rflag=0 && frflag=0 && Iflag=0 && Pflag=0
+
+[ ${Iflag} -eq 1 ] && cflag=0 && tflag=0 && pflag=1 && \
+		      zflag=1 && iflag=0 && izflag=0 && \
+		      Tflag=0 && Pflag=0 && plflag=0 && rlflag=0
+
+[ ${Pflag} -eq 1 ] && aflag=0 && cflag=0 && mflag=0 && tflag=0 && pflag=0 && \
+		      rflag=0 && frflag=0 && plflag=0 && rlflag=0 && Tflag=0 && Iflag=0 && \
+		      Sflag=0
+
+if [ ${pflag} -eq 1 ] ; then
+	if [ ! -d ${PUBLISH_ROOT} ] ; then
+		_msg b "Creating  Shared Publish Root (${PUBLISH_ROOT})"
+		mkdir -p ${PUBLISH_ROOT}
+	fi
+fi
+
+if [ ${Iflag} -eq 1 ] ; then
+	BUILD_TYPE="Integration"
+	HFILE="${BUILDERI_HST}"
+	_HFILE="${_BUILDERI_HST}"
+	MFILE="${METRICSI_HST}"
+	_MFILE="${_METRICSI_HST}"
+	SFILE="${SRCI_HST}"
+	_SFILE="${_SRCI_HST}"
+	PSITE="${INTEG_ROOT}"
+	_PSITE="`cd ${INTEG_ROOT} ; /bin/pwd`"
+	_PSITE="`echo ${_PSITE}/ | \
+		sed -e \"s,^${_INTEG_ROOT}/,${__INTEG_ROOT}/,\" -e \"s,//$,,\" -e \"s,/$,,\"`"
+else
+	if [ ${Tflag} -eq 1 ] ; then
+		BUILD_TYPE="Test"
+	else
+		if [ ${Pflag} -eq 1 ] ; then
+			BUILD_TYPE="Pre-Flight"
+		else
+			BUILD_TYPE="Official"
+		fi
+	fi
+	HFILE="${BUILDER_HST}"
+	_HFILE="${_BUILDER_HST}"
+	MFILE="${METRICS_HST}"
+	_MFILE="${_METRICS_HST}"
+	SFILE="${SRC_HST}"
+	_SFILE="${_SRC_HST}"
+	PSITE="${PUBLISH_ROOT}"
+	_PSITE="`cd ${PUBLISH_ROOT} ; /bin/pwd`"
+	_PSITE="`echo ${_PSITE}/ | \
+		sed -e \"s,^${PUBLISH_ROOT}/,${_PUBLISH_ROOT}/,\" -e \"s,//$,,\" -e \"s,/$,,\"`"
+fi
+
+export BUILD_TYPE HFILE _HFILE MFILE _MFILE SFILE _SFILE PSITE _PSITE
+_ermtag PUBLISH_SITE ${_PSITE}
+
+[ ${zflag} -eq 1 ] && ISMP_ASSEMBLY_TYPE="NAV"
+[ ${iflag} -eq 1 ] && ZIP_ASSEMBLY_TYPE="NAV"
+
+case "${fflag}" in
+[0-2])
+	:
+	;;
+*)
+	fflag=2
+	;;
+esac
+
+if [ ${Tflag} -eq 1 ] ; then
+	_CANDIDATES_ROOT="candidates_test"
+	CANDIDATES_ROOT="`cd ${_TIBCO_BUILD}/${_CANDIDATES_ROOT} ; /bin/pwd`"
+fi
+
+if [ ${rlflag} -eq 1 ] ; then
+	if [ ! -d ${LOCK_ROOT} ] ; then
+		_msg b "Creating  Shared Lock Root (${LOCK_ROOT})"
+		mkdir -p ${LOCK_ROOT}
+	fi
+fi
+
+_FEATURE="`echo ${FEATURE} | sed -e 's,\.,_,g'`"
+export _FEATURE
+
+_antcheck
+
+_urlcheck
+
+[ ${Pflag} -eq 1 ] && _pfwccheck
+
+_status_scr
+
+_update_scr
+
+_depot
+
+SVN_SRC_ROOT="${SVN_SRC_ROOT:-${SVN_ROOT}}"
+export SVN_SRC_ROOT
+
+if [ ${Pflag} -eq 1 ] ; then
+	UNIT_WC="${PFWC}"
+else
+	UNIT_WC="`echo \"${URL}\" | sed -e \"s,^${SVN_SRC_ROOT}/,${SRC_ROOT}/,\"`"
+fi
+_UNIT_WC="`echo \"${URL}\" | sed -e \"s,^${SVN_SRC_ROOT}/,,\"`"
+export UNIT_WC _UNIT_WC
+
+UNIT_OVERRIDES="${UNIT_WC}/build-overrides.xml"
+export UNIT_OVERRIDES
+
+UNIT_BUILDXML="${UNIT_WC}/build.xml"
+export UNIT_BUILDXML
+
+_svn_latest
+
+if [ "${SVN_CURRENT}" = "" ] ; then
+	if [ ${Kflag} -eq 0 ] ; then
+		SVN_CURRENT="${SVN_LATEST}"
+	else
+		if [ -d "${UNIT_WC}" ] ; then
+			_svn_current
+		else
+			SVN_CURRENT="${SVN_LATEST}"
+		fi
+	fi
+else
+	Kflag=0
+fi
+
+if [ ${Pflag} -eq 0 ] ; then
+	if [ -d "${UNIT_WC}" ] ; then
+		if [ ${Kflag} -eq 0 ] ; then
+			[ ${kflag} -eq 1 ] && _savelf
+			/bin/rm -rf "${UNIT_WC}"
+			_checkout_uwc
+			[ ${kflag} -eq 1 ] && _restorelf
+		else
+			cd "${UNIT_WC}"
+			svn cleanup .
+		fi
+	else
+		_checkout_uwc
+	fi
+fi
+
+_boilerplate
+
+_jdkcheck
+
+_featurecheck
+
+_getversion
+
+[ "${UNITVERSION}" != "" ] && _versioncheck
+
+_gettools
+
+_ru_type S
+
+_assembly_type
+
+# _ecuser
+
+# _ecemail
+
+_parameters
+
+_antopts
+
+BEGIN_TIME_BUILD=`date '+%s'`
+
+_build
+
+END_TIME_BUILD=`date '+%s'`
+
+_candidates
+
+_site
+
+[ "${UNITBN}" != "" ] && _bncheck
+
+[ "${UNITBQ}" != "" ] && _bqcheck
+
+__manifest
+
+_mncheck
+
+if [ ${tflag} -eq 1 ] ; then
+	_autotag
+	_tag_hst
+	echo "_TAG_HST_commit=1" > ${_COMMIT_CFG}
+fi
+
+[ "${SVN_TAG}" = "" ] && SVN_TAG="UNKNOWN"
+
+_src_hst
+
+[ ${Tflag} -eq 0 ] && [ ${Pflag} -eq 0 ] && \
+echo "_SFILE_commit=1" >> ${_COMMIT_CFG}
+
+[ ${Iflag} -eq 0 ] && \
+echo "_BUILDER_LOG_commit=1" >> ${_COMMIT_CFG}
+
+if [ ${Pflag} -eq 1 ] ; then
+	ECCR="NAV"
+else
+	_resource 2>&1 | tee ${_RESOURCE_LOG}
+	eval `grep ECCR= ${_RESOURCE_LOG} | tail -1`
+	/bin/rm -f ${_RESOURCE_LOG}
+fi
+
+[ ${Pflag} -eq 0 ] && _manifest
+
+[ ${Iflag} -eq 0 ] && \
+echo "_MANIFEST_commit=1" >> ${_COMMIT_CFG}
+
+[ ${Sflag} -eq 1 ] && _sign
+
+[ ${Iflag} -eq 0 ] && \
+echo "_SIGN_LOG_commit=1" >> ${_COMMIT_CFG}
+
+_pubcheck
+
+if [ ${pflag} -eq 1 ] ; then
+	BEGIN_TIME_PUBLISH=`date '+%s'`
+
+	_publish
+
+	END_TIME_PUBLISH=`date '+%s'`
+fi
+
+_builder_hst
+
+echo "_HFILE_commit=1" >> ${_COMMIT_CFG}
+
+[ ${cflag} -eq 1 ] && _changelog
+
+if [ ${mflag} -eq 1 ] ; then
+	_metrics
+	echo "_MFILE_commit=1" >> ${_COMMIT_CFG}
+	[ ${Iflag} -eq 0 ] && \
+	echo "_METRICS_LOG_commit=1" >> ${_COMMIT_CFG}
+fi
+
+_asmcheck
+
+/bin/rm -f ${_PROJECT_LOG} ${_PROJECT_HST} ${_ASSEMBLY_LOG} ${_ASSEMBLY_HST}
+
+[ ${aflag} -eq 1 ] && _project
+
+[ ${Iflag} -eq 0 ] && \
+echo "_PROJECT_HST_commit=1" >> ${_COMMIT_CFG}
+[ ${Iflag} -eq 0 ] && \
+echo "_PROJECT_LOG_commit=1" >> ${_COMMIT_CFG}
+
+BEGIN_TIME_ASSEMBLY=`date '+%s'`
+
+[ ${aflag} -eq 1 ] && _asmarchive && _asmopts && _assembly
+
+[ ${Iflag} -eq 0 ] && \
+echo "_ASSEMBLY_HST_commit=1" >> ${_COMMIT_CFG}
+[ ${Iflag} -eq 0 ] && \
+echo "_ASSEMBLY_LOG_commit=1" >> ${_COMMIT_CFG}
+
+if [ ${aflag} -eq 1 ] ; then
+	if [ ${DUAL} -eq 1 ] ; then
+		_project dual
+		_assembly dual
+	fi
+	if [ ${p2flag} -eq 1 ] ; then
+		if [ ${DUAL} -eq 0 ] ; then
+			_project p2
+			_assembly p2
+		fi
+	fi
+fi
+
+END_TIME_ASSEMBLY=`date '+%s'`
+
+_notify
+
+[ ${Iflag} -eq 0 ] && \
+echo "_NOTIFY_LOG_commit=1" >> ${_COMMIT_CFG}
+
+EXIT_STATUS="SUCCESSFUL"
+_TOOLS_LOG=""
+PDMS_ERM_LOG=""
+PDMS_BUILDER_LOG="${__BUILDER_LOG}"
+_pdms > ${_BUILDER_LOG}.tmp
+
+_export
+
+) 2>&1 | tee -a ${_BUILDER_LOG}
+
+[ -f ${_EXPORT_CFG} ] && . ${_EXPORT_CFG}
+/bin/rm -f ${_EXPORT_CFG}
+
+all_ok="${EXIT_CODE}"
+
+if [ "${all_ok}" = "0" ] ; then
+	if [ -f "${_BUILDER_LOG}.tmp" ] ; then
+		cat ${_BUILDER_LOG}.tmp | tee -a ${_BUILDER_LOG}
+	fi
+	/bin/rm -f ${_BUILDER_LOG}.tmp ${_ERMTAG_LOG}
+else
+	/bin/rm -f ${_BUILDER_LOG}
+	expr ${all_ok} + 1 >${DEVNULL} 2>&1
+	if [ ${?} -eq 0 ] ; then
+		exit ${all_ok}
+	else
+		exit 999
+	fi
+fi
+
+END_TIME_OVERALL=`date '+%s'`
+
+_timing
+
+echo "_TIMING_HST_commit=1" >> ${_COMMIT_CFG}
+
+_exit 0 SUCCESSFUL

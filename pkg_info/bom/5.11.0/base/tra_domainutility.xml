@@ -1,0 +1,89 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_domainutility" type="">
+		<include file="aliases_TRA.xml" />
+		<file src="${ADMINCLIENT_PATH}/lib/DomainUtility.jar" dest="lib/DomainUtility.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/DUServletEngine.jar" dest="lib/DUServletEngine.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/log4jProps.jar" dest="lib/log4jProps.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${DOMUTIL_PATH}/template/cmdline/AddCustomSoftware.xml" dest="template/domainutility/cmdline/AddCustomSoftware.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/AddJMSServer.xml" dest="template/domainutility/cmdline/AddJMSServer.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/AddMachine.xml" dest="template/domainutility/cmdline/AddMachine.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/AddSecondaryServer.xml" dest="template/domainutility/cmdline/AddSecondaryServer.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/ChangeDomainCredentials.xml" dest="template/domainutility/cmdline/ChangeDomainCredentials.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/CreateDomain.xml" dest="template/domainutility/cmdline/CreateDomain.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/DeleteDomain.xml" dest="template/domainutility/cmdline/DeleteDomain.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/DomainSecurity.xsd" dest="template/domainutility/cmdline/DomainSecurity.xsd" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/domainutility.xsd" dest="template/domainutility/cmdline/domainutility.xsd" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/EnableHttpsConf.xml" dest="template/domainutility/cmdline/EnableHttpsConf.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/JoinLogicalMachine.xml" dest="template/domainutility/cmdline/JoinLogicalMachine.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/MigrateDomainTo510.xml" dest="template/domainutility/cmdline/MigrateDomainTo510.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/Miscellaneous.xml" dest="template/domainutility/cmdline/Miscellaneous.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/ModifyEMSParameters.xml" dest="template/domainutility/cmdline/ModifyEMSParameters.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/ModifyDBConfiguration.xml" dest="template/domainutility/cmdline/ModifyDBConfiguration.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/ModifyLDAPConfiguration.xml" dest="template/domainutility/cmdline/ModifyLDAPConfiguration.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/ModifyRVParameters.xml" dest="template/domainutility/cmdline/ModifyRVParameters.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/RemoveJMSServer.xml" dest="template/domainutility/cmdline/RemoveJMSServer.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/SwitchRV2EMS.xml" dest="template/domainutility/cmdline/SwitchRV2EMS.xml" perm="644" plat="${ALL}"/>
+		<file src="${DOMUTIL_PATH}/template/cmdline/UpdateJMSServer.xml" dest="template/domainutility/cmdline/UpdateJMSServer.xml" perm="644" plat="${ALL}"/>
+
+		<file src="${DOMUTIL_PATH}/bin/unix/dumpnetnum" dest="bin/dumpnetnum" perm="555" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/bin/MoveMachine.tra" dest="bin/MoveMachine.tra_template" perm="644" plat="${UNIX}"/>
+
+		<file src="${DOMUTIL_PATH}/template/unix/adaptercplustra.template" dest="template/domainutility/adaptercplustra.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/adaptertra.template" dest="template/domainutility/adaptertra.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/add_generic_j2ee_servlet_engine_task.xml" dest="template/domainutility/add_generic_j2ee_servlet_engine_task.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/add_jrun_servlet_engine_task.xml" dest="template/domainutility/add_jrun_servlet_engine_task.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/add_sun_java_system_web_server_task.xml" dest="template/domainutility/add_sun_java_system_web_server_task.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/add_tomcat_servlet_engine_task.xml" dest="template/domainutility/add_tomcat_servlet_engine_task.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/add_weblogic_servlet_engine_task.xml" dest="template/domainutility/add_weblogic_servlet_engine_task.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/ant.dtd" dest="template/domainutility/ant.dtd" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/generate_jars.xml" dest="template/domainutility/generate_jars.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/hawkagentcfg.template" dest="template/domainutility/hawkagentcfg.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/hawkagenttra.template" dest="template/domainutility/hawkagenttra.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/hawkhmacfg.template" dest="template/domainutility/hawkhmacfg.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/tibhawkhmatra.template" dest="template/domainutility/tibhawkhmatra.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/jmswrapper.template" dest="template/domainutility/jmswrapper.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/jruntra.template" dest="template/domainutility/jruntra.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/ResinStartupTemplate.sh" dest="template/domainutility/ResinStartupTemplate.sh" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/sunone_server.xml" dest="template/domainutility/sunone_server.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/SunONEShutdownTemplate.sh" dest="template/domainutility/SunONEShutdownTemplate.sh" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/SunONEStartupTemplate.sh" dest="template/domainutility/SunONEStartupTemplate.sh" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/tomcat_server.xml" dest="template/domainutility/tomcat_server.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/TomcatStartupTemplate.sh" dest="template/domainutility/TomcatStartupTemplate.sh" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/tomcattra.template" dest="template/domainutility/tomcattra.template_template" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/update_servlet_engine_task.xml" dest="template/domainutility/update_servlet_engine_task.xml" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/WebLogicManagedStartupTemplate.sh" dest="template/domainutility/WebLogicManagedStartupTemplate.sh" perm="644" plat="${UNIX}"/>
+		<file src="${DOMUTIL_PATH}/template/unix/WebLogicStartupTemplate.sh" dest="template/domainutility/WebLogicStartupTemplate.sh" perm="644" plat="${UNIX}"/>
+
+		<file src="${DOMUTIL_PATH}/template/win32/adaptercplustra.template" dest="template/domainutility/adaptercplustra.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/adaptertra.template" dest="template/domainutility/adaptertra.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/add_generic_j2ee_servlet_engine_task.xml" dest="template/domainutility/add_generic_j2ee_servlet_engine_task.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/add_jrun_servlet_engine_task.xml" dest="template/domainutility/add_jrun_servlet_engine_task.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/add_sun_java_system_web_server_task.xml" dest="template/domainutility/add_sun_java_system_web_server_task.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/add_tomcat_servlet_engine_task.xml" dest="template/domainutility/add_tomcat_servlet_engine_task.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/add_weblogic_servlet_engine_task.xml" dest="template/domainutility/add_weblogic_servlet_engine_task.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/ant.dtd" dest="template/domainutility/ant.dtd" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/generate_jars.xml" dest="template/domainutility/generate_jars.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/hawkagentcfg.template" dest="template/domainutility/hawkagentcfg.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/hawkagenttra.template" dest="template/domainutility/hawkagenttra.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/hawkhmacfg.template" dest="template/domainutility/hawkhmacfg.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/tibhawkhmatra.template" dest="template/domainutility/tibhawkhmatra.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/jmswrapper.template" dest="template/domainutility/jmswrapper.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/jruntra.template" dest="template/domainutility/jruntra.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/ResinStartupTemplate.bat" dest="template/domainutility/ResinStartupTemplate.bat" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/sunone_server.xml" dest="template/domainutility/sunone_server.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/SunONEShutdownTemplate.bat" dest="template/domainutility/SunONEShutdownTemplate.bat" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/SunONEStartupTemplate.bat" dest="template/domainutility/SunONEStartupTemplate.bat" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/tomcat_server.xml" dest="template/domainutility/tomcat_server.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/TomcatStartupTemplate.bat" dest="template/domainutility/TomcatStartupTemplate.bat" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/tomcattra.template" dest="template/domainutility/tomcattra.template_template" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/update_servlet_engine_task.xml" dest="template/domainutility/update_servlet_engine_task.xml" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/WebLogicManagedStartupTemplate.bat" dest="template/domainutility/WebLogicManagedStartupTemplate.bat" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/template/win32/WebLogicStartupTemplate.bat" dest="template/domainutility/WebLogicStartupTemplate.bat" perm="644" plat="${WIN}"/>
+
+		<file src="${DOMUTIL_PATH}/bin/win32/exRemoteFileRepo.dat" dest="bin/exRemoteFileRepo.dat" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/bin/win32/iisadmin.vbs" dest="bin/iisadmin.vbs" perm="644" plat="${WIN}"/>
+		<file src="${DOMUTIL_PATH}/bin/win32/RepoDeleteInstance.bat" dest="bin/RepoDeleteInstance.bat_template" perm="644" plat="${WIN}"/>
+	</component>
+</components>

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_runtime" type="">
+	<include file="aliases_defcon.xml"/>
+
+	<file src="${exportdir}/${PORT}/bin/adtuxedo_native.dll" dest="lib/adtuxedo_native.dll" perm="755" plat="${WIN}"/>
+	<file src="${exportdir}/${PORT}/bin/adtuxedo_wrkstn.dll" dest="lib/adtuxedo_wrkstn.dll" perm="755" plat="${WIN}"/>
+	
+	<file src="${exportdir}/${PORT}/bin/agent.dll" dest="lib/agent.dll" perm="755" plat="${WIN}"/>
+	<file src="${exportdir}/${PORT}/bin/agentJMS.dll" dest="lib/agentJMS.dll" perm="755" plat="${WIN}"/>
+	
+	<file src="${exportdir}/${PORT}/lib/agent.lib" dest="lib/agent.lib" perm="755" plat="${WIN}"/>
+	<file src="${exportdir}/${PORT}/lib/agentJMS.lib" dest="lib/agentJMS.lib" perm="755" plat="${WIN}"/>
+	
+	<file src="${exportdir}/${PORT}/lib/palettes/adtuxedopalettedoc.jar" dest="lib/palettes/adtuxedopalettedoc.jar" perm="755" plat="${WIN}"/>
+		
+	<dir src="${exportdir}/${PORT}/hotfix" dest="" plat="${WIN}"/>
+	<!-- <dir src="${exportdir}/${PORT}/ledger" dest="" plat="${WIN}"/>
+	<dir src="${exportdir}/${PORT}/logs" dest="" plat="${WIN}"/> -->
+	<dir src="${exportdir}/${PORT}/include" dest="" plat="${WIN}"/>
+	<dir src="${exportdir}/${PORT}/doc" dest="" plat="${WIN}"/>
+	<dir src="${bldsrcdir}/examples" dest="" plat="${WIN}"/>
+	
+	<file src="${exportdir}/${PORT}/bin/adtuxedo_native.tra" dest="bin/adtuxedo_native.tra_template" perm="755" plat="${WIN}"/>
+	<file src="${exportdir}/${PORT}/bin/adtuxedo_wrkstn.tra" dest="bin/adtuxedo_wrkstn.tra_template" perm="755" plat="${WIN}"/>
+	<file src="${exportdir}/${PORT}/prodinfo" dest="prodinfo" perm="755" plat="${WIN}"/>
+	
+	</component>
+</components>

@@ -1,0 +1,56 @@
+#
+# Copyright (c) 2001-2008 TIBCO Software Inc.
+# All Rights Reserved.
+#
+# This software is the confidential and proprietary information of
+# TIBCO Software Inc.
+#
+# $Id$
+#
+#============================================== 
+# *** Common variables. Modify these only. ***
+#============================================== 
+
+tibco.env.PSP %PS%
+tibco.env.TIB_HOME %TIBCO_HOME_ESC%
+tibco.env.JVM_LIB_DIR %TIBCO_JVM_LIB_DIR_ESC%
+tibco.env.JVM_LIB_SERVER_DIR %TIBCO_JVM_LIB_SERVER_DIR_ESC%
+tibco.env.JVM_LIB_PATH %TIBCO_JVM_LIB_SERVER_ESC%
+tibco.env.DEFCON_HOME %TIBCO_DEFCON_HOME_ESC%
+
+## Specifies the initial Java heap size to allocate
+tibco.env.HEAP_SIZE 256M
+
+## add BW and adapters' custom paths
+
+## this will be prepended to tibco.env.PATH
+tibco.env.CUSTOM_PATH
+
+## this will be prepended to tibco.class.path.extended
+tibco.env.CUSTOM_CP_EXT %DEFCON_HOME%/lib
+
+# Set CLASS PATH
+tibco.env.STD_CP_EXT
+ 
+# Set PALETTE PATH
+tibco.env.STD_PALETTE_PATH
+
+#
+# Specifies the JVM to be used to launch this application
+java.library %JVM_LIB_PATH%
+
+#
+# Specifies the Java class that contains the main
+java.start.class com.tibco.defcon.Defcon
+
+#
+# Specifies the main function in invoke
+java.start.method main
+
+#
+# Specifies the classpath and provides for automatic expansion 
+tibco.class.path.extended %CUSTOM_CP_EXT%%PSP%%STD_CP_EXT%
+
+#
+# Specifies the initial Java heap size to allocate
+java.heap.size.max %HEAP_SIZE%

@@ -1,0 +1,8 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_hotfix" type="common">
+		<include file="aliases_TRA.xml" />
+		<dir src="${exportdir}/common/hotfix/bin" dest="hotfix" dirperm="755" fileperm="444" plat="${ALL}"/>
+		<dir src="${exportdir}/common/hotfix/lib" dest="hotfix" dirperm="755" fileperm="444" plat="${ALL}"/>
+	</component>
+</components>

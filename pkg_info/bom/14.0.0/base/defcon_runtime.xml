@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_runtime" type="">
+	<include file="aliases_defcon.xml"/>
+	
+	
+<file src="${bldsrcdir}/bin/linux.bin" dest="bin/linux.bin" perm="555" plat="${UNIX}"/>
+<file src="${bldsrcdir}/bin/windows.exe" dest="bin/windows.exe" perm="555" plat="${WIN}"/>
+<file src="${bldsrcdir}/bin/mac.dmg" dest="bin/mac.dmg" perm="555" plat="${MAC}"/>
+	
+	</component>
+</components>

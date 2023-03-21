@@ -1,0 +1,5 @@
+<includes>
+	<include file="defconce_runtime.xml"/>
+	<include file="defconce_design.xml"/>
+	<!--<include file="defconce_docs.xml"/>-->
+</includes>

@@ -1,0 +1,13 @@
+<includes>
+	<include file="tra_common.xml" />
+	<include file="tra_platform.xml" />
+	
+
+<!--
+	Since the version is different, build these assemblies separately,
+	whenever there is a change.
+
+	<include file="tra_xsltplugin.xml" />
+	<include file="tra_vpdinstallerutil.xml" />
+-->
+</includes>

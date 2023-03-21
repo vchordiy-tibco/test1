@@ -1,0 +1,113 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_common" type="common">
+		<include file="aliases_TRA.xml" />
+		<file src="${scriptsdir}/post-install.xml" dest="setup/post-install.xml" perm="644" plat="${ALL}"/>
+		<file src="${bldsrcdir}/version.txt" dest="version.txt" perm="444" plat="${ALL}"/>
+
+		<file src="${bldsrcdir}/bin/ae2xsd.tra" dest="bin/ae2xsd.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${bldsrcdir}/bin/tra.tra" dest="bin/tra.tra_template" perm="644" plat="${ALL}"/>
+
+		<file src="${exportdir}/common/TIBCOrt.jar" dest="lib/TIBCOrt.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${MUILANG_PATH}/lib/muitools.jar" dest="lib/muitools.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/Deployment.jar" dest="lib/Deployment.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/AppManage.jar" dest="lib/AppManage.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/TIBCOUserAPI.jar" dest="lib/TIBCOUserAPI.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/TIBCOAuthAPI.jar" dest="lib/TIBCOAuthAPI.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/TIBCOAuthAPIimpl.jar" dest="lib/TIBCOAuthAPIimpl.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${ADMINCLIENT_PATH}/lib/AuthAPI-javadoc.jar" dest="lib/AuthAPI-javadoc.jar" perm="555" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/lib/AuthAPIimpl-javadoc.jar" dest="lib/AuthAPIimpl-javadoc.jar" perm="555" plat="${ALL}"/>
+		<dir src="${ADMINCLIENT_PATH}/doc/sample/auth/src" dest="sample/auth" dirperm="755" fileperm="644" plat="${ALL}"/>
+		<file src="${ADMINCLIENT_PATH}/doc/sample/auth/bin/RunSample.tra" dest="sample/auth/bin/RunSample.tra_template" perm="555" plat="${ALL}"/>
+
+		<dir src="${ADMINCLIENT_PATH}/doc/auth/javadoc" dest="doc/auth" dirperm="755" fileperm="644" plat="${ALL}"/>
+		<dir src="${ADMINCLIENT_PATH}/doc/auth/pdf" dest="doc/auth" dirperm="755" fileperm="644" plat="${ALL}"/>
+
+
+		<file src="${AETOOLS_PATH}/lib/TIBqd.jar" dest="lib/TIBqd.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${AEUI_PATH}/rel/bin/buildear.tra" dest="bin/buildear.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/TIBCOdesigner.jar" dest="lib/TIBCOdesigner.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/support/designerhelp.jar" dest="lib/designerhelp.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/ad_palette.jar" dest="lib/palettes/ad_palette.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/clearcasercs.jar" dest="lib/palettes/clearcasercs.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/cvsrcs.jar" dest="lib/palettes/cvsrcs.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/designerpalettes.jar" dest="lib/palettes/designerpalettes.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/perforcercs.jar" dest="lib/palettes/perforcercs.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/pvcsrcs.jar" dest="lib/palettes/pvcsrcs.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/palettes/vssrcs.jar" dest="lib/palettes/vssrcs.jar" perm="555" plat="${ALL}"/>
+		<file src="${AEUI_PATH}/rel/lib/support/designerobjectrepomapper.jar" dest="lib/repository_mappers/designerobjectrepomapper.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${DAVSTORE_PATH}/lib/davstore.jar" dest="lib/palettes/davstore.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${NEO_PATH}/lib/neo-common-util.jar" dest="lib/neo-common-util.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${BWTURBO_PATH}/turbosdk.jar" dest="lib/turbosdk.jar" perm="555" plat="${ALL}"/>
+		<file src="${BWTURBO_PATH}/TurboPalette.jar" dest="lib/palettes/TurboPalette.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${SECU_TOMCAT_PATH}/lib/TIBCOSecurityTomcat.jar" dest="lib/TIBCOSecurityTomcat.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${TIBCOCRYPTO_PATH}/lib/TIBCrypt.jar" dest="lib/TIBCrypt.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${TIBCRYPTX_PATH}/lib/tibcryptx_pswd.jar" dest="lib/tibcryptx_pswd.jar" perm="555" plat="${ALL}"/>
+
+		<file src="${TRAMODIFY_PATH}/lib/tramodify.jar" dest="lib/tramodify.jar" perm="555" plat="${ALL}"/>
+		<file src="${TRAMODIFY_PATH}/bin/tramodify.tra" dest="bin/tramodify.tra_template" perm="644" plat="${ALL}"/>
+
+		<file src="${MUILANG_PATH}/lib/muitools.jar" dest="lib/muitools.jar" perm="555" plat="${ALL}"/>
+		<file src="${MUILANG_PATH}/bin/MUILangChooser_template.tra" dest="bin/MUILangChooser.tra_template" perm="644" plat="${ALL}"/>
+
+		<file src="${REPOMAPPER_PATH}/lib/TIBCOadaptermappers.jar" dest="lib/repository_mappers/TIBCOadaptermappers.jar" perm="755" plat="${ALL}"/>
+
+		<file src="${REPO_PATH}/bin/localInstanceInfo.ini" dest="bin/localInstanceInfo.ini" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/remoteInstanceInfo.ini" dest="bin/remoteInstanceInfo.ini" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/namespace.ini" dest="bin/namespace.ini" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/schemas.xml" dest="bin/schemas.xml_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/repoConvert.ini" dest="bin/repoConvert.ini" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/AppManage.tra" dest="bin/AppManage.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/AppStatusCheck.tra" dest="bin/AppStatusCheck.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoConvert.tra" dest="bin/RepoConvert.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoCreateInstance.tra" dest="bin/RepoCreateInstance.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoDeleteInstance.tra" dest="bin/RepoDeleteInstance.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoDelete.tra" dest="bin/RepoDelete.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoDiff.tra" dest="bin/RepoDiff.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoExport.tra" dest="bin/RepoExport.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoImport.tra" dest="bin/RepoImport.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoListInstances.tra" dest="bin/RepoListInstances.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoPing.tra" dest="bin/RepoPing.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RepoRename.tra" dest="bin/RepoRename.tra_template" perm="644" plat="${ALL}"/>  
+		<file src="${REPO_PATH}/bin/ExportDomainSecurity.tra" dest="bin/ExportDomainSecurity.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/ImportDomainSecurity.tra" dest="bin/ImportDomainSecurity.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/CorpRoleSynchronizer.tra" dest="bin/CorpRoleSynchronizer.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/CorpUserSynchronizer.tra" dest="bin/CorpUserSynchronizer.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/RedeployAllAppsForUser.tra" dest="bin/RedeployAllAppsForUser.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/domainutility.tra" dest="bin/domainutility.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/domainutilitycmd.tra" dest="bin/domainutilitycmd.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/traUpgradeManager.tra" dest="bin/traUpgradeManager.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/obfuscate.tra" dest="bin/obfuscate.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/seed.tra" dest="bin/seed.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/traDBConfig.tra" dest="bin/traDBConfig.tra_template" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/bin/DeleteInvalidUsers.tra" dest="bin/DeleteInvalidUsers.tra_template" perm="644" plat="${ALL}"/>
+
+		<file src="${REPO_PATH}/schema/Repository.xsd" dest="schema/Repository.xsd" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/AESDK.xsd" dest="schema/AESDK.xsd" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/AEService.xsd" dest="schema/AEService.xsd" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/AESchema.xsd" dest="schema/AESchema.xsd" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/genericAdapter.xsd" dest="schema/genericAdapter.xsd" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/apps/MessageBroker.xsd" dest="schema/apps/MessageBroker.xsd" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/examples/myAdapter.xml" dest="schema/examples/myAdapter.xml" perm="644" plat="${ALL}"/>
+		<file src="${REPO_PATH}/schema/examples/myAdapter.xsd" dest="schema/examples/myAdapter.xsd" perm="644" plat="${ALL}"/>
+
+		<file src="${REPO_PATH}/lib/filteredfiles.txt" dest="lib/filteredfiles.txt" perm="644" plat="${ALL}"/>
+
+
+		<file src="${TIBCRYPTX_PATH}/config/security/DefaultPolicy.xml" dest="config/security/DefaultPolicy.xml" perm="644" plat="${ALL}"/>
+		<file src="${TIBCRYPTX_PATH}/config/security/NormalPolicy.xml" dest="config/security/NormalPolicy.xml" perm="644" plat="${ALL}"/>
+		<file src="${TIBCRYPTX_PATH}/config/security/PasswordPolicy.xsd" dest="config/security/PasswordPolicy.xsd" perm="644" plat="${ALL}"/>
+		<file src="${TIBCRYPTX_PATH}/config/security/StrongPolicy.xml" dest="config/security/StrongPolicy.xml" perm="644" plat="${ALL}"/>
+
+		<file src="${TPCL_PATH}/rel/misc_jars/auth.jar" dest="lib/auth.jar" perm="555" plat="${ALL}"/>
+	</component>
+</components>

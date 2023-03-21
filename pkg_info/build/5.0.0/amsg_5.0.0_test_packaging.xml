@@ -1,0 +1,40 @@
+<project name="ec_client_call" basedir=".">
+<import file="ec_client_call_common.xml"/>
+
+<target name="package" depends="setConditions,setwin,setlnx,setmac,-testClientExistence,-getClients" >
+	<echo> ostype ${ostype} </echo>
+	<antcall target="login" />
+    		
+	<FULL-testbuild-install-packaging-procedure-final 
+	BOMLOC="https://svn.tibco.com/svn/amf/trunk/amx/tracks/amxce/source/productModel" 
+	bomsvn="HEAD" buildType="full build" override-default-export-dir="/local/tibco/export_dir" dev_email_address="mosingh@tibco.com" devtools_svn_revision="179794" 
+	devtools_url="http://svn.tibco.com/amf/trunk/amf/build/amf-tools/tools/dev-installer/2.1" 
+	EXPORT_DIR="/local/tibco/bomstaging/testinstaller" 
+	installtype="base" 
+	JAVA_HOME="1.8" 
+	prodid="amx" 
+	PRODUCT_ASSEMBLY_SVN_LOCATION="http://svn.tibco.com/install/trunk/product_assemblies" 
+	runqatests="false" 
+	SKIP_BOMSTAGING="true" 
+	SKIP_PACKAGING="true" 
+	SKIP_PRODUCT_ASSEMBLY_CREATION="false" 
+	version-hotfix="0" 
+	VERSION-MAJOR="5"
+	VERSION-MINOR="0"
+	VERSION_MAINT="0"
+	MULTIPLE_PORTS="aix/power_64 linux/x86_64 macosx/x86_64 sol/sparc_64 sol/x86_64 win/x86_64 hpux/ia64"
+	ports="none"/>
+	
+	<!-- <test-installpackaging-procedure
+	svn_url="https://svn.tibco.com/svn/amf/trunk/amx/tracks/amxce/source/productModel/featureconfigs" 
+	svn_revision="HEAD" 
+	featureconfig_file="product_amsg_5.0.0_FeatureConfig.xml" 
+	ports="linux/x86_64"
+	recipient_email_address="mosingh@tibco.com"
+	run_qa_tests="false"
+	buildName="testbuild"/> -->
+		
+	<echo> Please see status of job at https://commander.na.tibco.com:5443/commander/jobs.php </echo>
+</target>
+</project>
+

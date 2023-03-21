@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_doc_online" type="common">
+	<include file="aliases_defcon.xml"/>
+	<file src="${bldsrcdir}/lib/palettes/defconpalettedoc.jar" dest="lib/palettes/defconpalettedoc.jar" perm="755" plat="${ALL}"/>
+	</component>
+</components>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TIBCOInstallerFeatures>
+
+    <productDef productType="contributor" id="tssteaagent" name="TSS TEA Agent" supportedPlatforms="macosx/x86_64,linux/x86_64,win/x86_64,sol/sparc_64,sol/x86_64,aix/power_64,hpux/ia64"
+        universalinstallerrelease="3.3.0" universalinstallerversion="V4"
+        productMMName="shared" productMMVersion="1.1.0" productMachineModel="false" version="1.0.0.000"/>
+
+    <customVariables>
+    	<localVariable name="tss.tea.agent.shortversion" value="1.0"/>
+    	<localVariable name="tss.tea.agent.tra.filename" value="tss-agent"/>
+    	<localVariable name="tss.tea.agent.folder" value="tss"/>
+        <localVariable name="tss.agent.home" value="${tibco.home.esc}/tea/agents/$L{tss.tea.agent.folder}/$L{tss.tea.agent.shortversion}"/>
+        <localVariable name="tss.oauth.home" value="${tibco.home.esc}/tea/agents/$L{tss.tea.agent.folder}/$L{tss.tea.agent.shortversion}/oauth"/>
+        <localVariable name="tss.oauth.tibco.as.home.esc" value="${tibco.home.esc}/tea/agents/$L{tss.tea.agent.folder}/$L{tss.tea.agent.shortversion}/oauth/as"/>
+        <localVariable name="tss.shortcutName" value="TSS TEA Agent"/>
+		<localVariable name="tss.shortcutFolder" value="TIBCO/${tibco.environment.name}/$L{tss.shortcutName} $L{tss.tea.agent.shortversion}"/>
+        
+    </customVariables>
+
+    <installerFeature name="oauth" installLocation="$L{tss.oauth.home}" version="1.0.0" visible="false">
+        <assemblyList>
+			<assembly uid="product_tibco_oauth_server" version="1.0.0"/>
+			<assembly overrideTargetDirectory="$L{tss.oauth.tibco.as.home.esc}" uid="product_tibco_activespaces_common" version="2.1.3"/>
+            <assembly overrideTargetDirectory="$L{tss.oauth.tibco.as.home.esc}" uid="product_tibco_activespaces_admin" version="2.1.3"/>
+            <assembly overrideTargetDirectory="$L{tss.oauth.tibco.as.home.esc}" uid="product_tibco_activespaces_agent" version="2.1.3"/>
+		</assemblyList>
+		<dependency type="feature" uid="main_wrapper" version="2.4.4" description="Wrapper" plat="linux26gl23_x86_64,macosx_x86_64,sol_sparc_64,sol_x86_64,aix_power_64,hpux_ia64"/>
+		<dependency type="feature" uid="main_wrapper-winvc10" version="2.4.4" description="wrapper" plat="win_x86_64"/>
+		<postInstallAction description="OAuth Server post install action" sequence="post-assembly-ref" target="post-install" taskFile="$L{tss.oauth.home}/setup/scripts/post-install-tss.xml">
+			<postInstallActionProperty name="tea.short.version" value="${tea.shortVersion}"/>
+			<postInstallActionProperty name="tss.tea.agent.short.version" value="$L{tss.tea.agent.shortversion}"/>
+			<postInstallActionProperty name="tss.agent.home.folder" value="$L{tss.oauth.home}"/>
+			<postInstallActionProperty name="tss.oauth.tibco.as.home.esc" value="$L{tss.oauth.tibco.as.home.esc}"/>			
+		</postInstallAction>
+	</installerFeature>
+
+	<installerFeature name="agent" installLocation="$L{tss.agent.home}" version="1.0.0" visible="false">
+        <assemblyList>
+			<assembly uid="product_tibco_tss_server" version="1.0.0"/>
+		</assemblyList>
+		<dependency description="TEA TSS Agent" mustBeInstalled="false" type="feature" uid="oauth_tssteaagent" version="1.0.0"/>
+		<dependency type="feature" uid="main_wrapper" version="2.4.4" description="Wrapper" plat="linux26gl23_x86_64,macosx_x86_64,sol_sparc_64,sol_x86_64,aix_power_64,hpux_ia64"/>
+		<dependency type="feature" uid="main_wrapper-winvc10" version="2.4.4" description="wrapper" plat="win_x86_64"/>
+		<postInstallAction description="Post installation for TSS TEA Agent" sequence="post-assembly-ref" target="post-install" taskFile="$L{tss.agent.home}/setup/post-install.xml">
+			<postInstallActionProperty name="tea.short.version" value="${tea.shortVersion}"/>
+			<postInstallActionProperty name="tss.tea.agent.short.version" value="$L{tss.tea.agent.shortversion}"/>
+			<postInstallActionProperty name="tss.tea.agent.tra.file.name" value="$L{tss.tea.agent.tra.filename}"/>
+			<postInstallActionProperty name="tra.file.location" value="$L{tss.agent.home}/bin/$L{tss.tea.agent.tra.filename}.tra"/>
+			<postInstallActionProperty name="tss.agent.home.folder" value="$L{tss.agent.home}"/>
+			<postInstallActionProperty name="tss.tea.agent.folder.name" value="$L{tss.tea.agent.folder}"/>
+		</postInstallAction>
+	</installerFeature>
+
+	<installerFeature name="steps" installLocation="${tss.agent.home}" version="1.1.0" visible="false" plat="win_x86_64">
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCOCreateWindowsShortcutWizardAction" sequence="post-install">
+			<property shortcutFolder="$L{tss.shortcutFolder}"/>
+			<property shortcutName="$L{tss.shortcutName}"/>
+			<property shortcutTarget="$L{tss.agent.home}/bin/tss-agent.exe" />
+			<property shortcutArgs=""/>
+			<property shortcutIcon=""/>
+			<property shortcutWorkingDirectory="$L{tss.agent.home}/bin" />
+		</wizardAction>
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCORemoveWindowsShortcutWizardAction" sequence="post-uninstall">
+			<property shortcutFolder="$L{tss.shortcutFolder}"/>
+			<property shortcutName="$L{tss.shortcutName}"/>
+		</wizardAction>
+	</installerFeature>
+
+	<jvm jdk="false" version="1.7.0" forceExternal="true" jvmbit="64"/>
+	<customSettings enableTibcoHomeConfigDirectory="true" multipleEnvironmentSupport="true"/>
+</TIBCOInstallerFeatures>

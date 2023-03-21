@@ -1,0 +1,25 @@
+<?xml  version="1.0"?>
+<components>
+	<component name="tra_xsltplugin" type="">
+		<include file="aliases_TRA.xml" />
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory.so" dest="lib/libXSLTPluginFactory.so" perm="555" plat="${SOLARIS}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/XSLTPluginFactory.jar" dest="lib/XSLTPluginFactory.jar" perm="555" plat="${SOLARIS}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory64.so" dest="lib/libXSLTPluginFactory64.so" perm="555" plat="${SOLARIS_64}"/>
+
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory.so" dest="lib/libXSLTPluginFactory.so" perm="555" plat="${LINUX_32},${LINUX_64},${ZLINUX_64}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/XSLTPluginFactory.jar" dest="lib/XSLTPluginFactory.jar" perm="555" plat="${LINUX_32},${LINUX_64},${ZLINUX_64}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory64.so" dest="lib/libXSLTPluginFactory64.so" perm="555" plat="${LINUX_64},${ZLINUX_64}"/>
+
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory.so" dest="lib/libXSLTPluginFactory.so" perm="555" plat="${AIX}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/XSLTPluginFactory.jar" dest="lib/XSLTPluginFactory.jar" perm="555" plat="${AIX}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory64.so" dest="lib/libXSLTPluginFactory64.so" perm="555" plat="${AIX_64}"/>
+
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory.so" dest="lib/libXSLTPluginFactory.so" perm="555" plat="${HPUX_IA64_32},${HPUX_IA64}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/XSLTPluginFactory.jar" dest="lib/XSLTPluginFactory.jar" perm="555" plat="${HPUX_IA64_32},${HPUX_IA64}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/lib/libXSLTPluginFactory64.so" dest="lib/libXSLTPluginFactory64.so" perm="555" plat="${HPUX_IA64}"/>
+
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/Release/bin/XSLTPluginFactory.dll" dest="bin/XSLTPluginFactory.dll" perm="555" plat="${WIN}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/Debug/bin/XSLTPluginFactoryd.dll" dest="bin/XSLTPluginFactoryd.dll" perm="555" plat="${WIN}"/>
+		<file src="${XSLT_PLUGIN_PATH}/${PORT}/Release/lib/XSLTPluginFactory.jar" dest="lib/XSLTPluginFactory.jar" perm="555" plat="${WIN}"/>
+	</component>
+</components>

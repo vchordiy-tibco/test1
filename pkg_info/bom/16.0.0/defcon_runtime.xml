@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_runtime" type="">
+	<include file="aliases_defcon.xml"/>
+	</component>
+</components>
+	

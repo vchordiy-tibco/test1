@@ -1,0 +1,27 @@
+<project default="build">
+	<property name="build.dir" value="dist/lib"/>
+	<property name="root" value="../.."/>
+	<property name="classes.dir" value="${build.dir}/classes"/>
+	<property name="defcon.src.dir" value="../src"/>
+	<property name="defcon.resources.dir" value="../src"/>
+	<property name="defcon.jar.name" value="defcon.jar"/>
+	<property name="dist.defcon" value="${build.dir}/${defcon.jar.name}"/>
+
+	<target name="build.defcon.jar">
+		<mkdir dir="${classes.dir}"/>
+		<javac srcdir="${defcon.src.dir}" destdir="${classes.dir}" debug="true" debuglevel="source,lines,vars" source="1.6" target="1.6" includeantruntime="on">
+		</javac>
+		<copy todir="${classes.dir}">
+		<fileset dir="${defcon.src.dir}" excludes="**/*.java"/>
+		<fileset dir="${defcon.resources.dir}" excludes="**/*.java"/>
+		</copy>
+		<jar destfile="${dist.defcon}" basedir="${classes.dir}"/>
+		<delete dir="${classes.dir}"/>
+	</target>
+
+	<target name="build">
+		<delete dir="${build.dir}"/>
+		<antcall target="build.defcon.jar"/>
+	</target>
+</project>
+

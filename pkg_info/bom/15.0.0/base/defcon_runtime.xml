@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_runtime" type="">
+	<include file="aliases_defcon.xml"/>
+	
+	<file src="${bldsrcdir}/bin/win.exe" dest="/pkg_info/bom/15.0.0bin/win.exe" perm="755" plat="${WIN}"/>
+	<file src="${bldsrcdir}/bin/mac.dmg" dest="/pkg_info/bom/15.0.0bin/mac.dmg"	perm="755" plat="${MAC}"/>
+	<file src="${bldsrcdir}/bin/lin.bin" dest="/pkg_info/bom/15.0.0bin/lin.bin" perm="755" plat="${LINUX}"/>
+	</component>
+</components>
+	

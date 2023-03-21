@@ -1,0 +1,135 @@
+<?xml version="1.0"?>
+<TIBCOInstallerFeatures>
+<productDef 
+	name="TIBCO defcon 15.0.0"
+	version="15.0.0"
+	id="defcon"
+	releasetype="base"
+	supportedPlatforms="win/x86_64,linux/x86_64,mac/x86_64"
+	universalinstallerrelease="3.6.6"
+	universalinstallerversion="L"
+	compatDisplayName="TIBCO Product"
+	compatType="tibco"
+	installDir="defcon/15.0" />
+	
+	<packagingProperties createp2installer="true" createcloudartifacts="epaas"   />
+
+	<customVariables>
+	<localVariable name="defcon.minimum.bw.version" value="6.3.1"/>
+	<variable name="defcon.home" value="${tibco.home}${fsp}defcon${fsp}15.0"/>
+	<variable name="defcon.home.esc" value="${tibco.home.esc}/defcon/15.0"/>
+	</customVariables>
+	
+	<installFeature name="Runtime" parentNode="runtime-node" profileUID="runtime-profile" version="15.0.0">
+		<assemblylist>
+		<assembly uid="product_tibco_defcon_runtime" version="15.0.0"></assembly>
+		</assemblylist>
+		
+		<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Runtime" type="feature" uid="Runtime_BW" version="6.3.1"/>
+			
+			<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+				<property productAcronym="BW"/>
+				<property minimumVersion="$L{defcon.minimum.bw.version}"/>
+				<property vpdUID="BW_runtime"/>
+				<property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_runtime"/>
+				<property productAssemblyMinVersion="$L{defcon.minimum.bw.version}"/>
+				<property showProgress="true"/>
+				<property description="Get install location for BW Runtime"/>
+			</wizardAction>
+		
+	
+	</installFeature>
+	
+	<installFeature name="Design" parentNode="design-node" profileUID="typical" verion ="15.0.0">
+		<assemblylist>
+		<assembly uid="product_tibco_defcon_common" version="15.0.0"></assembly>
+		</assemblylist>
+		<!-- <dependency description="TIBCO Defcon design" type="feature" uid="Runtime_defcon" version="15.0.0"/> -->
+			<dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Design" type="feature" uid="Design_BW" version="6.3.1"/>
+		
+	    <wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="BW"/>
+			<property minimumVersion="$L{defcon.minimum.bw.version}"/>
+			<property vpdUID="BW_design"/>
+			<property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_design"/>
+			<property productAssemblyMinVersion="$L{defcon.minimum.bw.version}"/>
+			<property showProgress="true"/>
+			<property description="Get install location for BW Design"/>
+		</wizardAction>
+	
+		
+		<wizardAction class="com.tibco.installer.wizard.action.TIBCODownloadAssemblyWizardAction" sequence="post-selection" plat="win/x86_64">
+			<property licenseFile="lgpl.txt"/>
+			<property filename="product_tibco_sunec_1.8.0.144_win_x86_64.zip"/>
+			<property targetInstallFeature="ecc_bw-base"/>
+			<property assemblyUID="product_tibco_sunec"/>
+			<property assemblyVersion="1.8.0.144"/>
+			<property url="http://public.tibco.com/pub/tibco_oss/sunec"/>
+			<property installLocation="${tibco.home}/tibcojre64/1.8.0"/>
+			<property lgplAssemblyDisplayName="Oracle Elliptic Curve Cryptography Library"/>
+	   </wizardAction>
+
+
+     <wizardAction class="com.tibco.installer.wizard.action.TIBCODownloadAssemblyWizardAction" sequence="post-selection" plat="macos/x86_64">
+		<property licenseFile="lgpl.txt"/>
+		<property filename="product_tibco_sunec_1.8.0.144_macosx_x86_64.zip"/>
+		<property targetInstallFeature="ecc_bw-base"/>
+		<property assemblyUID="product_tibco_sunec"/>
+		<property assemblyVersion="1.8.0.144"/>
+		<property url="http://public.tibco.com/pub/tibco_oss/sunec"/>
+		<property installLocation="${tibco.home}/tibcojre64/1.8.0"/>
+		<property lgplAssemblyDisplayName="Oracle Elliptic Curve Cryptography Library"/>
+     </wizardAction>
+	
+	
+	  <wizardAction class="com.tibco.installer.wizard.action.TIBCODownloadAssemblyWizardAction" sequence="post-selection" plat="linux/x86_64">
+		<property licenseFile="lgpl.txt"/>
+		<property filename="product_tibco_sunec_1.8.0.144_linux_x86_64.zip"/>
+		<property targetInstallFeature="ecc_bw-base"/>
+		<property assemblyUID="product_tibco_sunec"/>
+		<property assemblyVersion="1.8.0.144"/>
+		<property url="http://public.tibco.com/pub/tibco_oss/sunec"/>
+		<property installLocation="${tibco.home}/tibcojre64/1.8.0"/>
+		<property lgplAssemblyDisplayName="Oracle Elliptic Curve Cryptography Library"/>
+      </wizardAction>
+	
+	
+	
+	
+		<wizardAction sequence="post-install" class="com.tibco.installer.wizard.action.TIBCODoStuffWithFilesWizardAction">
+		<condition class="com.tibco.installer.wizard.condition.TIBCOCheckPlatformWizardCondition">
+		<property mustBeMet="true"/>
+		<property platform="windows"/>
+		</condition>
+		<property sourceFile="${defcon.home}/bin/win.exe"/>
+		<property targetFile="${defcon.home.esc}/setup/win.exe"/>
+		<property fileAction="copy"/>
+		<property overwriteExistingFile="true"/>
+		</wizardAction>
+		
+		<wizardAction sequence="post-install" class="com.tibco.installer.wizard.action.TIBCODoStuffWithFilesWizardAction">
+		<condition class="com.tibco.installer.wizard.condition.TIBCOCheckPlatformWizardCondition">
+		<property mustBeMet="true"/>
+		<property platform="linux"/>
+		</condition>
+		<property sourceFile="${defcon.home}/bin/lin.bin"/>
+		<property targetFile="${defcon.home.esc}/setup/lin.bin"/>
+		<property fileAction="copy"/>
+		<property overwriteExistingFile="true"/>
+		</wizardAction>
+		
+		<wizardAction sequence="post-install" class="com.tibco.installer.wizard.action.TIBCODoStuffWithFilesWizardAction">
+		<condition class="com.tibco.installer.wizard.condition.TIBCOCheckPlatformWizardCondition">
+		<property mustBeMet="true"/>
+		<property platform="mac"/>
+		</condition>
+		<property sourceFile="${defcon.home}/bin/mac.dmg"/>
+		<property targetFile="${defcon.home.esc}/setup/mac.dmg"/>
+		<property fileAction="copy"/>
+		<property overwriteExistingFile="true"/>
+		</wizardAction>
+
+	</installFeature>
+</TIBCOInstallerFeatures>
+	
+	

@@ -1,0 +1,6 @@
+<components>
+<component name="defcon_runtime" type="common">
+<include file="aliases_defcon.xml"/>
+<file src="${bldsrcdir}/dist/Defcon.jar" dest="lib/palettes/Defcon.jar" perm="755" plat="${ALL}"/>
+</component>
+</components>

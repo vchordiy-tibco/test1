@@ -1,0 +1,164 @@
+<?xml  version="1.0"?>
+<TIBCOInstallerFeatures>
+	<featureconfigincludes>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/java/1.8" featureconfigname="contrib_tibcojava-ibm_1.8.0.045_FeatureConfig.xml" plat="aix_power"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/java/1.8" featureconfigname="contrib_tibcojava64-ibm_1.8.0.045_FeatureConfig.xml" plat="aix_power_64,linux_s390x"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/java/1.8" featureconfigname="contrib_tibcojava-hpux_1.8.0_FeatureConfig.xml" plat="hpux_ia64_32"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/java/1.8" featureconfigname="contrib_tibcojava64-hpux_1.8.0_FeatureConfig.xml" plat="hpux_ia64"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/java/1.8" featureconfigname="contrib_tibcojava-oracle-with-sunec_1.8.0_FeatureConfig.xml" plat="win_x86,linux_x86"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/java/1.8" featureconfigname="contrib_tibcojava64-oracle-with-sunec_1.8.0_FeatureConfig.xml" plat="win_x86_64,linux_x86_64,sol_sparc_64,sol_x86_64,macos_x86_64"/>
+
+
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_wrapper_2.4.6_FeatureConfig.xml" plat="aix_power,aix_power_64,hpux_hppa,hpux_hppa_64,hpux_ia64_32,hpux_ia64,linux_s390x,macosx_x86_64,sol_x86_64,sol_sparc_64,win_x86,win_x86_64"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_wrapper-linux26_2.4.6_FeatureConfig.xml" plat="linux26gl23_x86_64,linux26gl23_x86"/>
+		<!-- 32 bit wrapper -->
+		<!-- 64 bit wrapper-->
+		<!-- original 32/64 bit gwrapper-->
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_gwrapper_2.4.6_FeatureConfig.xml" plat="win_x86,win_x86_64,macosx_x86_64"/>
+		<!-- 32 bit gwrapper -->
+		<!-- 64 bit gwrapper-->
+		<!-- original 32/64 bit gwrapper-->
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_pwrapper_2.4.6_FeatureConfig.xml" plat="win_x86,win_x86_64"/>
+		<!-- 32 bit gwrapper -->
+		<!-- 64 bit gwrapper-->
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/hawk/branches/5.2/pkg_info/hawk/bom/5.2.0/tra" featureconfigname="product_hawk_5.2.0_FeatureConfig.xml"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/infra/trunk/tpcl/tpcl-dev/pkg_info/bom/5.10.0/base" featureconfigname="product_tpcl_5.10.0_FeatureConfig.xml"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/infra/trunk/aeui/aeui-dev/pkg_info/bom/5.10.0/base" featureconfigname="product_Designer_5.10.0_FeatureConfig.xml"/>
+	</featureconfigincludes>
+
+	<!-- main definition for the product.  Use 4 digit version -->
+	<productDef name="TIBCO Runtime Agent 5.11.0" id="TRA" version="5.11.0"
+		universalinstallerrelease="3.6.2" universalinstallerversion="L"
+		compatDisplayName="TIBCO Runtime Agent" releaseType="base" supportedPlatforms="win/x86,win/x86_64,linux/x86,linux/x86_64" compatType="TRA" installDir="tra/5.11" includeDoc="true" />
+	<documentation>
+      		<readmeFile path="/potsticker/products/pubs/docs4release/TRA/5.10.0/TIB_TRA_5.10.0_readme.txt" />
+      		<readmeFile path="/potsticker/products/pubs/docs4release/hawk/5.2.0/TIB_hawk_5.2.0_readme.txt" />
+      		<readmeFile path="/potsticker/products/pubs/docs4release/Designer/5.10.0/TIB_Designer_5.10.0_readme.txt" />
+
+      		<relnotesFile path="/potsticker/products/pubs/docs4release/TRA/5.10.0/TIB_TRA_5.10.0_relnotes.pdf"/>
+      		<relnotesFile path="/potsticker/products/pubs/docs4release/hawk/5.2.0/TIB_hawk_5.2.0_relnotes.pdf"/>
+      		<relnotesFile path="/potsticker/products/pubs/docs4release/Designer/5.10.0/TIB_Designer_5.10.0_relnotes.pdf"/>
+
+      		<licensePdfFile path="/potsticker/products/pubs/docs4release/TRA/5.10.0/license/TIB_TRA_5.10.0_license.pdf"/>
+	</documentation>
+
+
+	<customVariables>
+		<variable name="tra.home" value="${tibco.home}${fsp}tra${fsp}5.11"/>
+		<variable name="tra.home.esc" value="${tibco.home.esc}/tra/5.11"/>
+		<variable name="tra.short.version" value="5.11"/>
+		<variable name="tra.version" value="5.11.0"/>
+
+		<variable name="minimum.rv.version" value="8.4.3"/>
+		<variable name="minimum.hawk.version" value="5.2.0"/>
+		<variable name="minimum.tpcl.version" value="5.10.0"/>
+		<variable name="minimum.designer.version" value="5.10.0"/>
+		<variable name="minimum.ems.version" value="8.2.1"/>
+	</customVariables>
+
+	<installerFeature name="Runtime" version="5.11.0" visible="true" installLocation="${tra.home.esc}">
+		<assemblyList>
+			<assembly uid="product_tibco_tra_common" version="5.11.0"></assembly>
+			<assembly uid="product_tibco_tra_hotfix" version="5.10.0"></assembly>
+			<assembly uid="product_tibco_tra_platform" version="5.11.0"></assembly>
+			<assembly uid="product_tibco_tra_domainutility" version="5.10.0"></assembly>
+			<assembly uid="product_tibco_tra_xmlsdk" version="5.10.0"></assembly>
+			<assembly uid="product_tibco_tra_tsm" version="5.10.0"></assembly>
+			<assembly uid="product_tibco_tra_xsltplugin" version="5.0.5" plat="aix_power,aix_power_64,hpux_ia64_32,hpux_ia64,linux_x86,linux_x86_64,sol_x86_64,sol_sparc_64,win_x86,win_x86_64"></assembly>
+			<assembly uid="product_tibco_tra_webappdeployment" version="5.10.0"></assembly>
+			<assembly uid="product_tibco_tra_vpdinstallerutil" version="1.0.0"></assembly>
+			<assembly overrideTargetDirectory="${tibco.home.esc}/tools/postinstall/lib" uid="product_tibco_postinstall_utility" version="1.0.0"></assembly>
+		</assemblyList>
+		<dependency description="TIBCO Rendezvous" mustBeInstalled="false" type="feature" uid="Runtime_rv" version="${minimum.rv.version}"/>
+		<dependency description="TIBCO Hawk Agent" mustBeInstalled="false" type="feature" uid="Agent_hawk" version="${minimum.hawk.version}"/>
+		<dependency description="Third Party Core Libraries" mustBeInstalled="false" type="feature" uid="Runtime_tpcl" version="${minimum.tpcl.version}"/>
+
+		<dependency type="feature" uid="main_wrapper" version="2.4.6" description="Wrapper" plat="aix_power,aix_power_64,hpux_ia64_32,hpux_ia64,linux_s390x,sol_x86_64,sol_sparc_64,win_x86,win_x86_64,macosx_x86_64"/>
+		<dependency type="feature" uid="main_gwrapper" version="2.4.6" description="gwrapper" plat="win_x86,win_x86_64,macosx_x86_64"/>
+		<dependency type="feature" uid="main_pwrapper" version="2.4.6" description="pwrapper" plat="win_x86,win_x86_64"/>
+		<dependency type="feature" uid="main_wrapper-linux26" version="2.4.6" description="TIBCO Wrapper" plat="linux_x86,linux_x86_64"/>
+
+		<wizardAction sequence="post-selection" class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc">
+			<property productAcronym="ems"/>
+			<property minimumVersion="${minimum.ems.version}"/>
+			<property vpdUID="ems"/>
+			<property productAssemblyUID="product_tibco_ems_common"/>
+			<property productAssemblyMinVersion="${minimum.ems.version}"/>
+			<property showProgress="true"/>
+			<property description="Get EMS install location"/>
+		</wizardAction>
+
+		<wizardAction sequence="install" class="com.tibco.installer.wizard.action.TIBCODoStuffWithFilesWizardAction">
+    		<property sourceFile="${tra.home.esc}/bin/domainutility.tra_template"/>
+    		<property targetFile="${tra.home.esc}/bin/domainutility.tra"/>
+    		<property fileAction="copy"/>
+    		<property overwriteExistingFile="true"/>
+		</wizardAction>
+
+		<wizardAction sequence="post-install" class="com.tibco.installer.wizard.action.TIBCODoStuffWithFilesWizardAction">
+			<condition class="com.tibco.installer.wizard.condition.TIBCOFileExistsWizardCondition">
+    			<property mustBeMet="true"/>
+    			<property filename="${tra.home.esc}/hotfix/lib"/>
+			</condition>
+    		<property sourceFile="${tra.home.esc}/hotfix/lib"/>
+    		<property targetFile=""/>
+    		<property fileAction="delete"/>
+    		<property overwriteExistingFile="true"/>
+		</wizardAction>
+
+		<postInstallAction
+    		taskFile="${tra.home.esc}/setup/post-install.xml"
+    		target="post-install"
+    		description="TIBCO Runtime Agent Post Installation - Update *.tra files"
+    		logLevel="debug"
+    		sequence="post-assembly-ref">
+			<postInstallActionProperty name="tibco.rv.home" value="${TIBCO_RV_HOME}"/>
+			<postInstallActionProperty name="tibco.rv.home.esc" value="${TIBCO_RV_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.hawk.home" value="${TIBCO_HAWK_HOME}"/>
+			<postInstallActionProperty name="tibco.hawk.home.esc" value="${TIBCO_HAWK_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.tpcl.home" value="${TIBCO_TPCL_HOME}"/>
+			<postInstallActionProperty name="tibco.tpcl.home.esc" value="${TIBCO_TPCL_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.designer.home" value="${TIBCO_DESIGNER_HOME}"/>
+			<postInstallActionProperty name="tibco.designer.home.esc" value="${TIBCO_DESIGNER_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.ems.home" value="${TIBCO_EMS_HOME}"/>
+			<postInstallActionProperty name="tibco.ems.home.esc" value="${TIBCO_EMS_HOME_ESC}"/>
+			<postInstallActionProperty name="tibco.ems.dir" value="${TIBCO_EMS_DIR}"/>
+			<postInstallActionProperty name="tibco.ems.dir.esc" value="${TIBCO_EMS_DIR_ESC}"/>
+			<postInstallActionProperty name="tibco.tra.home" value="${tra.home}"/>
+			<postInstallActionProperty name="tibco.tra.home.esc" value="${tra.home.esc}"/>
+			<postInstallActionProperty name="tibco.tra.short.version" value="${tra.short.version}"/>
+
+			<postInstallActionProperty name="tibco.use.vendor.native.driver" value="${TIBCO_USE_VENDOR_NATIVE_DRIVER}"/>
+			<postInstallActionProperty name="tibco.driver.type" value="${TIBCO_DRIVER_TYPE}"/>
+			<postInstallActionProperty name="tibco.driver.path" value="${TIBCO_DRIVER_PATH}"/>
+			<postInstallActionProperty name="tibco.oci.path" value="${TIBCO_OCI_PATH}"/>
+			<postInstallActionProperty name="tibco.oci.path.option" value="${TIBCO_OCI_PATH_OPTION}"/>
+			<postInstallActionProperty name="tibco.oci.path.arg" value="${TIBCO_OCI_PATH_ARG}"/>
+    	</postInstallAction>     
+
+		<postInstallAction
+    		taskFile="${tra.home.esc}/setup/post-install.xml"
+    		target="pre-uninstall"
+    		description="TIBCO Runtime Agent Pre-Uninstallation - Delete *.tra and wrapper files"
+    		logLevel="debug"
+    		sequence="pre-uninstall-ref">
+			<postInstallActionProperty name="tibco.tra.home" value="${tra.home}"/>
+			<postInstallActionProperty name="tibco.tra.home.esc" value="${tra.home.esc}"/>
+		</postInstallAction>     
+
+		<vpdentry compid="TRA" parentidkey="TRA" installLocation="${tra.home.esc}" version="5.10.0.1" name="TRA" displayName="TRA" description="TIBCO Runtime Agent" />
+		<vpdentry compid="TRA_tibcoinventory" parentidkey="TRA" installLocation="${tra.home.esc}" version="5.11.0.1" name="tibcoinventory" displayName="tibcoinventory" description="${tibco.home}" />
+		<vpdentry compid="TRA_runtime" parentidkey="TRA" installLocation="${tra.home.esc}" version="5.11.0.1" name="runtime" displayName="runtime" description="Runtime" dependency="jre,1.8.0.1;tpcl,5.10.0.1;hawk_agent,5.2.0.1"/>
+		
+		<vpdentry compid="tibrv" description="TIBCO Rendezvous" displayName="tibrv" installLocation="${TIBCO_RV_HOME}" name="tibrv" parentidkey="tibrv" version="${TIBCO_RV_VERSION}"/>
+		<vpdentry compid="tibrv_tibcoinventory" description="${tibco.home}" displayName="tibcoinventory" installLocation="${TIBCO_RV_HOME}" name="tibcoinventory" parentidkey="tibrv" version="${TIBCO_RV_VERSION}"/>
+		<vpdentry compid="tibrv_rendezvous" description="Rendezvous" displayName="rendezvous" installLocation="${TIBCO_RV_HOME}" name="rendezvous" parentidkey="tibrv" version="${TIBCO_RV_VERSION}"/>
+	</installerFeature>
+
+	<installerFeature name="Documentation" version="5.11.0" visible="true" installLocation="${tra.home.esc}">
+		<assemblyList>
+			<assembly uid="product_tibco_tra_docs" version="5.10.0"></assembly>
+		</assemblyList>
+		<vpdentry compid="TRA_documentation" parentidkey="TRA" installLocation="${tra.home.esc}" version="5.11.0.1" name="documentation" displayName="documentation" description="Documentation" />
+	</installerFeature>
+</TIBCOInstallerFeatures>

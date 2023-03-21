@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<aliases>
+
+<alias name="tibcodir" value="/tsi/root/tibco"/>
+<alias name="extdir" value="/tsi/root/external"/>
+<alias name="bldsrcdir" value="env.bldsrcdir"/>
+<alias name="scriptsdir" value="${bldsrcdir}/pkg_info/bom/5.10.0/scripts"/>
+<alias name="exportdir" value="${bldsrcdir}/export"/>
+<alias name="docssrcdir" value="/potsticker/products/pubs/docs4release/TRA/5.10.0"/>
+
+<alias name="AIX_32" value="aix61_power,aix_power"/>
+<alias name="AIX_64" value="aix61_power_64,aix_power_64"/>
+<alias name="AIX" value="${AIX_32},${AIX_64}"/>
+
+<alias name="HPUX_IA64_32" value="hpux112_ia64_32,hpux_ia64_32"/>
+<alias name="HPUX_IA64" value="hpux112_ia64,hpux_ia64"/>
+<alias name="HPUX" value="${HPUX_IA64}"/>
+
+<alias name="ZLINUX_64" value="linux26gl24_s390x,linux_s390x"/>
+<alias name="LINUX_32" value="linux26gl23_x86,linux_x86"/>
+<alias name="LINUX_64" value="linux26gl23_x86_64,linux_x86_64"/>
+<alias name="LINUX" value="${LINUX_32},${LINUX_64}"/>
+
+<alias name="MAC_64" value="macosx_x86_64,macos_x86_64"/>
+<alias name="MAC" value="${MAC_64}"/>
+
+<alias name="SOLARIS_SPARC_64" value="sol10_sparc_64,sol_sparc_64"/>
+<alias name="SOLARIS_X86_64" value="sol10_x86_64,sol_x86_64"/>
+<alias name="SOLARIS_64" value="${SOLARIS_SPARC_64},${SOLARIS_X86_64}"/>
+<alias name="SOLARIS" value="${SOLARIS_64}"/>
+
+<alias name="UNIX_32" value="${AIX_32},${HPUX_IA64_32},${LINUX_32}"/>
+<alias name="UNIX_64" value="${AIX_64},${HPUX_IA64},${LINUX_64},${SOLARIS_64},${ZLINUX_64},${MAC_64}"/>
+<alias name="UNIX" value="${UNIX_32},${UNIX_64}"/>
+
+<alias name="WIN_32" value="win_x86"/>
+<alias name="WIN_64" value="win_x86_64"/>
+<alias name="WIN" value="${WIN_32},${WIN_64}"/>
+
+<alias name="ALL" value="${WIN},${UNIX},${ZLINUX_64}" />
+
+<alias name="ADMINCLIENT_PATH" value="${tibcodir}/admclt/5.10.0/L/rel" />
+<alias name="AETOOLS_PATH" value="${tibcodir}/aetools/1.1.0" />
+<alias name="AEUI_PATH" value="${tibcodir}/designer/5.10.0/L" />
+<alias name="BWTURBO_PATH" value="${tibcodir}/bwturbo/5.6.1/L/rel/lib" />
+<alias name="DAVSTORE_PATH" value="${tibcodir}/davstore/1.2.0/L/rel" />
+<alias name="DOMUTIL_PATH" value="${ADMINCLIENT_PATH}" />
+<alias name="MUILANG_PATH" value="${tibcodir}/muilang/1.1.0/L" />
+<alias name="REPO_PATH" value="${ADMINCLIENT_PATH}" />
+<alias name="REPOMAPPER_PATH" value="${tibcodir}/adaptermappers/1.0.0/L" />
+<alias name="SDK_PATH" value="${tibcodir}/sdk/5.4.1/L" />
+<alias name="SDK50_PATH" value="${tibcodir}/sdk/5.0.7/L" />
+<alias name="SDK55_PATH" value="${tibcodir}/sdk/5.8.0/V6-GA" />
+<alias name="SECU_TOMCAT_PATH" value="${tibcodir}/secu_tomcat/1.2.0/L/rel" />
+
+<alias name="THIRDPARTY_PATH" value="${extdir}/thirdparty" />
+<alias name="TIBCOCRYPTO_PATH" value="${tibcodir}/crypto/2.18.300/L/rel" />
+<alias name="TIBCOXML_PATH" value="${tibcodir}/txml/5.60.0/L/rel/lib" />
+<alias name="TIBCRYPTX_PATH" value="${tibcodir}/cryptx_pswd/2.13.0/L/rel" />
+<alias name="TPCL_PATH" value="${tibcodir}/tpcl/5.10.0/L" />
+<alias name="TRAMODIFY_PATH" value="${tibcodir}/tramodify/5.1.3" />
+<alias name="VPD_INSTALLER_UTIL_PATH" value="${tibcodir}/tibcoinstaller/tibcolegacysob/1.0.0" />
+<alias name="WEBAPPDEPLOYMENT_PATH" value="${ADMINCLIENT_PATH}" />
+<alias name="WRAPPER_PATH" value="${tibcodir}/wrap/2.4.6/L" />
+<alias name="NEO_PATH" value="${tibcodir}/neo_util/2.5.0/L" />
+<alias name="XML_PARSER_PATH" value="${tibcodir}/tibcoxmlparser/1.0.0/L" />
+<alias name="XSLT_PLUGIN_PATH" value="${tibcodir}/xsltplugin/5.0.5/L" />
+
+</aliases>

@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TIBCOInstallerFeatures>
+  <productDef buildType="release" compatDisplayName="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Testing 3 4.0.3" compatType="bwplugintest3" id="bwplugintest3" name="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Testing 3 4.0.3" productType="base" releaseType="base" supportedPlatforms="win/x86_64,linux/x86_64,macos/x86_64" universalinstallerrelease="3.6.6" universalinstallerversion="L" version="4.0.3" />
+  <packagingProperties autoconfigGenerated="true" bundle_analysis="true" createp2installer="true" supportedBWVersion="6.6" />
+  <customVariables>
+    <localVariable name="bwplugintest3.minimum.bw.version" value="6.6.0" />
+    <localVariable name="bwplugintest3.extension.palettes.home" value="${tibco.BW.home}/../palettes/test3/4.0" />
+    <localVariable name="bwplugintest3.extension.palettes.design.home" value="${tibco.BW.home}/../palettes/test3/4.0/design" />
+    <localVariable name="bwplugintest3.extension.palettes.runtime.home" value="${tibco.BW.home}/../palettes/test3/4.0/runtime" />
+    <localVariable name="bwplugintest3.palette.full.name" value="TIBCO BW Test3 Palette" />
+    <localVariable name="bwplugintest3.palette.short.name" value="test3" />
+    <localVariable name="bwplugintest3.palette.package.name" value="com.tibco.bw.palette" />
+    <localVariable name="bwplugintest3.palette.install.tag" value="TIBCO BW Test3 Palette Features Installation" />
+    <localVariable name="bwplugintest3.palette.uninstall.tag" value="TIBCO BW Test3 Palette Features Uninstallation" />
+    <localVariable name="product.version" value="4.0.3" />
+    <localVariable name="product.short.version" value="4.0" />
+    <localVariable name="product.base.version" value="4.0.3" />
+    <localVariable name="bwplugintest3.minimum.bwce.version" value="2.1.0" />
+    <localVariable name="bwplugintest3.minimum.bwcloud.version" value="1.0.0" />
+    <localVariable name="bwplugintest3.palette.ius" value="defcon.design.feature.group" />
+  </customVariables>
+  <installProfile description="" name="Runtime" uid="runtime-profile" />
+  <installProfile defaultSelected="true" description="Installs all components of the product" name="Typical" uid="typical" />
+  <installerFeatureNode name="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Testing 3 4.0.3 Runtime" nodeID="runtime-node" parentNode="root" />
+  <installerFeatureNode name="TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Testing 3 4.0.3 Design" nodeID="design-node" parentNode="root" />
+  <installerFeature name="runtime" parentNode="runtime-node" profileUID="runtime-profile" version="4.0.3" visible="true">
+    <assemblyList>
+      <assembly overrideTargetDirectory="$L{bwplugintest3.extension.palettes.runtime.home}" uid="assembly_tibco_defcon_runtime" version="4.0.3" />
+      <assembly overrideTargetDirectory="$L{bwplugintest3.extension.palettes.home}" uid="product_tibco_bwplugintest3_runtime" version="4.0.3" />
+    </assemblyList>
+    <dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Runtime" mustBeInstalled="false" type="feature" uid="Runtime_BW" version="$L{bwplugintest3.minimum.bw.version}" />
+    <wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="post-selection">
+      <property productAcronym="BW" />
+      <property minimumVersion="$L{bwplugintest3.minimum.bw.version}" />
+      <property vpdUID="BW_runtime" />
+      <property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_runtime" />
+      <property productAssemblyMinVersion="$L{bwplugintest3.minimum.bw.version}" />
+      <property showProgress="true" />
+      <property description="Get install location for BW Runtime" />
+    </wizardAction>
+    <postInstallAction description="bwplugintest3Runtime - creating extension palette link" logLevel="debug" sequence="post-assembly-ref" target="create-ext-palette-link" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+      <postInstallActionProperty name="ext.palette.full.name" value="$L{bwplugintest3.palette.full.name}" />
+      <postInstallActionProperty name="ext.palette.short.name" value="$L{bwplugintest3.palette.short.name}" />
+      <postInstallActionProperty name="ext.palette.package.name" value="$L{bwplugintest3.palette.package.name}" />
+      <postInstallActionProperty name="ext.palette.location" value="$L{bwplugintest3.extension.palettes.home}" />
+    </postInstallAction>
+    <postInstallAction description="bwplugintest3Runtime - deleting extension palette link" logLevel="debug" sequence="pre-uninstall-ref" target="delete-ext-palette-link" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+      <postInstallActionProperty name="ext.palette.full.name" value="$L{bwplugintest3.palette.full.name}" />
+      <postInstallActionProperty name="ext.palette.short.name" value="$L{bwplugintest3.palette.short.name}" />
+      <postInstallActionProperty name="ext.palette.package.name" value="$L{bwplugintest3.palette.package.name}" />
+      <postInstallActionProperty name="ext.palette.location" value="$L{bwplugintest3.extension.palettes.home}" />
+    </postInstallAction>
+    <postInstallAction description="bwplugintest3Runtime - deleting extension palette link" logLevel="debug" sequence="pre-install-ref" target="delete-ext-palette-link" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <condition class="com.tibco.installer.wizard.condition.TIBCOFileExistsWizardCondition">
+        <property mustBeMet="true" />
+        <property filename="${tibco.BW.home.esc}/ext/palettes/com.tibco.bw.palette.test3.link" />
+      </condition>
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+      <postInstallActionProperty name="ext.palette.full.name" value="$L{bwplugintest3.palette.full.name}" />
+      <postInstallActionProperty name="ext.palette.short.name" value="$L{bwplugintest3.palette.short.name}" />
+      <postInstallActionProperty name="ext.palette.package.name" value="$L{bwplugintest3.palette.package.name}" />
+      <postInstallActionProperty name="ext.palette.location" value="$L{bwplugintest3.extension.palettes.home}" />
+    </postInstallAction>
+  </installerFeature>
+  <installerFeature name="design" parentNode="design-node" profileUID="typical" version="4.0.3" visible="true">
+    <assemblyList>
+      <assembly overrideTargetDirectory="$L{bwplugintest3.extension.palettes.design.home}" uid="assembly_tibco_defcon_design" version="4.0.3" />
+    </assemblyList>
+    <dependency description="TIBCO ActiveMatrix BusinessWorks(TM) Design" mustBeInstalled="false" type="feature" uid="Design_BW" version="$L{bwplugintest3.minimum.bw.version}" />
+    <wizardAction class="com.tibco.installer.wizard.action.TIBCOSetFeatureStateWizardAction" sequence="post-selection">
+      <property featureUID="runtime_bwplugintest3" />
+      <property isEnabled="true" />
+      <property isVisible="true" />
+      <property isSelected="true" />
+    </wizardAction>
+    <wizardAction class="com.tibco.installer.wizard.action.TIBCOCheckForInstallLoc" sequence="post-selection">
+      <property productAcronym="BW" />
+      <property minimumVersion="$L{bwplugintest3.minimum.bw.version}" />
+      <property vpdUID="BW_design" />
+      <property productAssemblyUID="product_tibco_com_tibco_bw_enterprise_design" />
+      <property productAssemblyMinVersion="$L{bwplugintest3.minimum.bw.version}" />
+      <property showProgress="true" />
+      <property description="Get install location for BW Design" />
+    </wizardAction>
+    <wizardAction class="com.tibco.installer.wizard.action.TIBCOCreateP2AssemblyList" sequence="post-selection">
+      <property variableToSet="tibco.p2.assemblies" />
+    </wizardAction>
+    <postInstallAction description="bwplugintest3Design - Post Installation Preparation" logLevel="debug" sequence="post-assembly-ref" target="install-ext-palette-design" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+      <postInstallActionProperty name="ext.palette.short.name" value="$L{bwplugintest3.palette.short.name}" />
+      <postInstallActionProperty name="ext.palette.package.name" value="$L{bwplugintest3.palette.package.name}" />
+      <postInstallActionProperty name="ext.palette.location" value="$L{bwplugintest3.extension.palettes.home}" />
+      <postInstallActionProperty name="ext.palette.install.ius" value="$L{bwplugintest3.palette.ius}" />
+      <postInstallActionProperty name="ext.palette.install.tag" value="$L{bwplugintest3.palette.install.tag}" />
+    </postInstallAction>
+    <postInstallAction description="bwplugintest3Design - Post Installation Preparation" logLevel="debug" sequence="post-assembly-ref" target="setup-bwthor-launch" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+    </postInstallAction>
+    <postInstallAction description="bwplugintest3Design - uninstalling extension palette link" logLevel="debug" sequence="pre-assembly-uninstall-ref" target="uninstall-ext-palette-design" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+      <postInstallActionProperty name="ext.palette.short.name" value="$L{bwplugintest3.palette.short.name}" />
+      <postInstallActionProperty name="ext.palette.package.name" value="$L{bwplugintest3.palette.package.name}" />
+      <postInstallActionProperty name="ext.palette.location" value="$L{bwplugintest3.extension.palettes.home}" />
+      <postInstallActionProperty name="ext.palette.uninstall.ius" value="$L{bwplugintest3.palette.ius}" />
+      <postInstallActionProperty name="ext.palette.uninstall.tag" value="$L{bwplugintest3.palette.uninstall.tag}" />
+    </postInstallAction>
+    <postInstallAction description="bwplugintest3Design - post-uninstall Actions" logLevel="debug" sequence="post-uninstall-ref" target="setup-bwthor-launch" taskFile="${tibco.BW.home}/scripts/build.xml">
+      <postInstallActionProperty name="bw.home" value="${tibco.BW.home}" />
+      <postInstallActionProperty name="bw.home.esc" value="${tibco.BW.home.esc}" />
+    </postInstallAction>
+  </installerFeature>
+</TIBCOInstallerFeatures>

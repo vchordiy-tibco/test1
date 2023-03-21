@@ -1,0 +1,9 @@
+<?xml  version="1.0"?>
+<aliases>
+	<alias name="tibcodir" value="/tsi/root/tibco"/>
+	<alias name="bldsrcdir" value="env.bldsrcdir"/>
+	<alias name="docssrcdir" value="/potsticker/products/pubs/docs4release/bwse/5.10.0"/>
+	<alias name="ALL" value="hpux112_ia64,linux24gl23_x86_64,linux24gl23_x86,sol9_sparc,sol9_sparc_64,win_x86,aix53_power_64,sol10_x86_64"/>
+	<alias name="WIN" value="win_x86" />
+	<alias name="UNIX" value="hpux112_ia64,linux24gl23_x86_64,linux24gl23_x86,sol9_sparc,sol9_sparc_64,aix53_power_64" />
+</aliases>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_design" type="common">
+	<include file="aliases_defcon.xml"/>
+
+	<file src="${bldsrcdir}/dsg/design.txt" dest="dsg/design.txt" perm="644" plat="${ALL}"/>
+	</component>
+</components>

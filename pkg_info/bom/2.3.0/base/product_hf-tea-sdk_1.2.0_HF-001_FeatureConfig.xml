@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TIBCOInstallerFeatures>
+	
+    <productDef name="TIBCO Enterprise Administrator 1.2.0 Hotfix-001" id="hf-tea" releaseType="hotfix" hotfix_number="001" supportedPlatforms="platform-independent"  
+        universalinstallerrelease="3.2.3" universalinstallerversion="V5"
+        productMMName="shared" productMMVersion="1.0.0" productMachineModel="false" version="1.0.0" readmeFile="TIB_hf-tea-sdk_1.2.0_HF-001_readme.txt"/>
+    
+    <customVariables>
+        <variable name="tea.shortVersion" value="1.2"/>        
+		<variable name="tea.home" value="${tibco.home}/tea/${tea.shortVersion}"/>
+    </customVariables>
+
+	<!--installerFeature name="Server" installLocation="${tea.home}/hotfix" version="1.2.0">
+        <assemblyList>
+        		<assembly uid="product_tibco_tea_server" version="1.2.0"/>	
+        </assemblyList>		
+		<dependency description="TEA Server" mustBeInstalled="true" type="feature" uid="server_teaserver" version="1.2.0"/>		
+    </installerFeature-->    	
+    
+    <installerFeature name="library" installLocation="${tea.home}" version="1.2.0" visible="false">
+        <assemblyList>			
+			<assembly overrideTargetDirectory="${tea.home}/agentlib" uid="product_tibco_tea_agent_library" version="1.2.0"/>											
+		</assemblyList>
+		<dependency description="TEA Agent Library" mustBeInstalled="true" type="feature" uid="library_tea-sdk" version="1.2.0"/>						
+	</installerFeature>
+	
+</TIBCOInstallerFeatures>

@@ -1,0 +1,4 @@
+<includes>
+<include file="defcon_runtime.xml"/>
+<include file="defcon_docs.xml"/>
+</includes>

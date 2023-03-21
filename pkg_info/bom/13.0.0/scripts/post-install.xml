@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="defcon-post-install" default="post-install">
+
+	<fail unless="tibco.home.esc" message="tibco.home.esc property not set."/>
+	<fail unless="tibco.defcon.home.esc" message="tibco.defcon.home.esc property not set."/>
+	<property environment="env"/>
+	<property name="deffolder" value="${tibco.defcon.home.esc}/lib"/>
+	<property name="deffolder" value="${tibco.defcon.home.esc}/lib/"/>
+	
+	
+	<target name="init">
+		<echo message="Begin Post Installation of TIBCO Defcon"/>
+		<echo message="tibco.home.esc=${tibco.home.esc}"/>
+		<echo message="tibco.defcon.home.esc=${tibco.defcon.home.esc}"/>
+	</target>
+	
+	
+	<target name="post-install" depends="init, checkOS">		
+		<antcall target="move" />
+	</target>
+	<target name="move">
+		<move todir="${deffolder}">
+			<fileset dir="${tibco.defcon.home.esc}/bin/">
+				<include name="**/c3p0*"/>
+				<include name="**/nikita_1.0.0*"/>
+			</fileset>
+		</move>
+	</target>
+
+</project>	

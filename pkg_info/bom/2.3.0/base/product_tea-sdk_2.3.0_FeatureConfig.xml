@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TIBCOInstallerFeatures>
+	
+    <productDef name="TIBCO Enterprise Administrator SDK 2.2.0" id="tea-sdk" releaseType="base" supportedPlatforms="macosx/x86_64,linux26gl23/x86_64,win/x86_64,sol/sparc_64,sol/x86_64,aix/power_64,hpux/ia64" 
+        universalinstallerrelease="3.6.2" universalinstallerversion="L"
+        productMMName="shared" productMMVersion="1.1.0" productMachineModel="false" version="2.3.0.000"/>
+        
+    <installProfile defaultSelected="true" description="Install TIBCO Enterprise Administrator SDK" name="1) TIBCO Enterprise Administrator SDK" uid="tea-profile"/>
+    <installProfile description="Install TIBCO HAWK Agent" name="2) TIBCO HAWK Agent" uid="hawk-profile"/>    
+    <installerFeatureNode name="TIBCO Enterprise Administrator SDK" nodeID="teasdk-node" parentNode="root"/>
+	<installerFeatureNode name="Hawk Agent Runtime" nodeID="hawk-node" parentNode="root"/>
+
+
+    <featureconfigincludes>      	
+    	<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_wrapper_2.4.4.003_FeatureConfig.xml" plat="linux26gl23_x86_64,macosx_x86_64,sol_sparc_64,sol_x86_64,aix_power_64,hpux_ia64"/>    
+    	<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_wrapper-winvc10_2.4.4.003_FeatureConfig.xml" plat="win_x86_64"/>
+    	<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_gwrapper-winvc10_2.4.4.003_FeatureConfig.xml" plat="win_x86,win_x86_64"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/install/trunk/contribs/wrapper/2.4" featureconfigname="contrib_pwrapper-winvc10_2.4.4.003_FeatureConfig.xml" plat="win_x86,win_x86_64"/>
+		<featureconfiginclude svnrev="HEAD" svnurlloc="http://svn.tibco.com/hawk/branches/5.1/pkg_info/hawk/bom/5.1.1/base" featureconfigname="contrib_hawk-adminagent_5.1.1_FeatureConfig.xml"/>
+		
+		<featureconfiginclude featureconfigname="contrib_teaserver_2.3.0.000_FeatureConfig.xml"/> 
+		<featureconfiginclude featureconfigname="contrib_emsteaagent_1.1.0.000_FeatureConfig.xml"/>    
+		<featureconfiginclude featureconfigname="contrib_tssteaagent_1.0.0.000_FeatureConfig.xml"/>    
+    </featureconfigincludes>
+
+    <customVariables>
+        <variable name="tea.shortVersion" value="2.3"/>        
+		<variable name="tea.home" value="${tibco.home.esc}/tea/${tea.shortVersion}"/>
+		<variable name="shortcutName" value="TIBCO Enterprise Administrator SDK"/>
+		<variable name="shortcutFolder" value="TIBCO/${tibco.environment.name}/${shortcutName} ${tea.shortVersion}"/>
+    </customVariables>
+   
+	
+	<installerFeature name="TIBCO Enterprise Administrator" installLocation="${tea.home}" version="2.3.0" parentNode="teasdk-node" profileUID="tea-profile">
+		<dependency description="TIBCO Wrapper" mustBeInstalled="false" type="feature" uid="wrapper_teaserver" version="2.4.4"/>
+		<dependency description="TEA Server" mustBeInstalled="false" type="feature" uid="server_teaserver" version="2.2.0"/>
+		<dependency description="TEA Agent Library" mustBeInstalled="false" type="feature" uid="library_tea-sdk" version="2.2.0"/>
+		<dependency description="PostInstallStep"  mustBeInstalled="false" type="feature" uid="steps_teaserver" plat="win_x86_64" version="2.2.0"/>		
+		<dependency description="TEA EMS Agent" mustBeInstalled="false" type="feature" uid="agent_emsteaagent" version="1.1.0"/>		
+		<dependency description="TEA EMS Agent Post Install Step"  mustBeInstalled="false" type="feature" uid="steps_emsteaagent" plat="win_x86_64" version="1.1.0"/>	
+		<dependency description="TEA TSS Agent" mustBeInstalled="false" type="feature" uid="agent_tssteaagent" version="1.0.0"/>		
+		<dependency description="TEA TSS Agent Post Install Step"  mustBeInstalled="false" type="feature" uid="steps_tssteaagent" plat="win_x86_64" version="1.0.0"/>	
+		<assemblyList>		
+			<!--developer docs-->
+			<assembly additionalTargetDirectory="${tea.home}/doc/developer" overrideTargetDirectory="${tea.home}/web/docs" uid="product_tibco_tea_server_docs" version="2.2.0"/>
+			<assembly additionalTargetDirectory="${tea.home}/doc/developer/javadocs" overrideTargetDirectory="${tea.home}/web/docs/javadocs" uid="product_tibco_tea_agent_library_javadocs" version="2.2.0"/>
+		</assemblyList>	
+    </installerFeature>
+    
+    <installerFeature name="HAWK Agent" parentNode="hawk-node" profileUID="hawk-profile" version="5.1.1" visible="true">
+    	<dependency description="TIBCO Wrapper" mustBeInstalled="false" type="feature" uid="wrapper_teaserver" version="2.4.4"/>
+		<dependency description="HAWK Runtime" mustBeInstalled="false" type="feature" uid="main_hawk-adminagent" version="5.1.1"/>
+    </installerFeature>
+    	
+	<installerFeature name="library" installLocation="${tea.home}" version="2.3.0" visible="false">
+        <assemblyList>			
+        	<assembly uid="product_tibco_tea_agent_samples" version="2.2.0"/>
+			<assembly overrideTargetDirectory="${tea.home}/agentlib" uid="product_tibco_tea_agent_library" version="2.2.0"/>											
+		</assemblyList>						
+	</installerFeature>
+	
+</TIBCOInstallerFeatures>

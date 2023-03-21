@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<TIBCOInstallerFeatures>
+	<productDef name="TIBCO Defcon 4.1.0" id="defcon" pimsId="tibdefcon" version="4.1.0" releaseType="base" supportedPlatforms="aix/power,hpux/ia64,sol/sparc,sol/x86,linux/x86,macosx/x86_64" universalinstallerrelease="3.4.2" universalinstallerversion="L" compatDisplayName="TIBCO Defcon" compatType="defcon" installDir="defcon/4.0" />
+
+	<customVariables>
+		<variable name="defcon.name" value="TIBCO Defcon"/>
+		<variable name="defcon.home" value="${tibco.home}${fsp}defcon${fsp}4.0"/>
+		<variable name="defcon.home.esc" value="${tibco.home.esc}/defcon/4.0"/>
+		<variable name="defcon.version" value="4.1.0" />
+		<variable name="defcon.short.version" value="4.0"/>
+	</customVariables>
+
+	<installerFeature name="Runtime" version="4.1.0" installLocation="${defcon.home}">
+		<assemblyList>
+			<assembly uid="product_tibco_defcon_runtime" version="4.1.0"></assembly>			
+		</assemblyList>
+	</installerFeature>
+
+	<installerFeature name="Design" version="4.1.0" installLocation="${defcon.home}">
+		<assemblyList>
+			<assembly uid="product_tibco_defcon_design" version="4.1.0"></assembly>
+		</assemblyList>
+	</installerFeature>
+</TIBCOInstallerFeatures>

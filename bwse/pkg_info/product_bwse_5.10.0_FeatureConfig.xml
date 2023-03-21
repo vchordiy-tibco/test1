@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><TIBCOInstallerFeatures>
+   <productDef id="bwse" name="TIBCO ActiveMatrix BusinessWorks Service Engine 5.10.0 Hotfix-005" version="5.10.0.005" productType="hotfix" releaseType="hotfix" hotfix_number="5" supportedPlatforms="platform-independent" productMMName="shared" productMMVersion="1.0.0" productMachineModel="true" targetPlatform="common" universalinstallerrelease="3.1.0" universalinstallerversion="V02"/>
+
+
+    <customVariables>
+        <variable name="bwse.home" value="${tibco.home}${fsp}bwse${fsp}5.10"/>
+        <variable name="bwse.home.esc" value="${tibco.home.esc}/bwse/5.10"/>
+        <variable name="tra.home.esc" value="${tibco.home.esc}/tra/5.7"/>
+        <variable name="dabs.home" value="${tibco.home}${fsp}dabs${fsp}1.3"/>
+        <variable name="dabs.home.esc" value="${tibco.home.esc}/dabs/1.3"/>
+        <variable name="bw.home.esc" value="${tibco.home.esc}/bw/5.10"/>
+        <variable name="DONT_DISPLAY_FOR_BWSE" value="true"/>
+    </customVariables>
+
+   
+
+  <installerFeature name="BWSE 5.10.0 Hotfix 05" version="5.10.0">
+          <dependency description="Runtime Hotfix 05" type="feature" uid="Runtime Hotfix 05_bwse" version="5.10.0"/>
+          <dependency description="Design Hotfix 05" type="feature" uid="Design Hotfix 05_bwse" version="5.10.0"/>
+   </installerFeature>
+
+    <installerFeature installLocation="${tibco.home}/components/shared/1.0.0" name="Runtime Hotfix 05" visible="false" version="5.10.0">
+            <assemblyList>
+                <assembly uid="product_tibco_com_tibco_bwse510hf5_metadata" version="5.10.0"/>
+                
+         <assembly uid="assembly_tibco_com_tibco_amx_bwse_runtime_bw_hotfix_jars_feature" version="1.4.3.002"/>
+      
+         <assembly uid="assembly_tibco_com_tibco_amx_bwse_runtime_feature" version="1.4.3.002"/>
+      
+         <assembly uid="assembly_tibco_com_tibco_amx_gxml_databinding_feature" version="1.0.201.001"/>
+      
+         
+      
+        </assemblyList>
+    </installerFeature>
+	
+
+      <installerFeature name="Design Hotfix 05" visible="false" version="5.10.0">
+        <assemblyList>
+            <assembly overrideTargetDirectory="${tibco.home.esc}/release_notes" uid="product_tibco_tra_bw_dabs_hotfix_readme" version="5.10.005"/>
+            <assembly overrideTargetDirectory="${bw.home.esc}" uid="product_tibco_bw_hotfix" version="5.10.010"/>
+            <assembly overrideTargetDirectory="${tra.home.esc}" uid="product_tibco_tra_hotfix" version="5.7.402"/>
+
+        </assemblyList>
+
+
+    </installerFeature>
+
+
+
+</TIBCOInstallerFeatures>

@@ -1,0 +1,89 @@
+<project name="defcon-post-install" default="post-install">
+<fail unless="tibco.home.esc" message="tibco.home.esc property not set."/>
+<fail unless="tibco.defcon.home.esc" message="tibco.defcon.home.esc property not set."/>
+
+<target name="init" >
+<echo message="Post Installation of TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon"/>
+<echo message="tibco.home.esc=${tibco.home.esc}"/>
+<echo message="tibco.defcon.home.esc=${tibco.defcon.home.esc}"/>
+</target>
+
+<target name="post-install" depends="init,checkOS,substituteVarsTra">
+<echo message="End of Post Installation of TIBCO Defcon"/>
+</target>
+<target name="substituteVarsTra">
+<macrodef name="tra.tasks">
+<attribute name="file"/>
+<attribute name="dest"/>
+<sequential>
+<copy file="@{dest}/@{file}.tra_template" tofile="@{dest}/@{file}.tra" overwrite="true" verbose="true"/>
+<copy file="${tibco.home.esc}/tools/wrapper/${wrapper}${tibco.wrapper.extension}" tofile="@{dest}/@{file}${tibco.wrapper.extension}" verbose="true" failonerror="true"/>
+<echo message="Changing permissions for @{dest}/@{file}${tibco.wrapper.extension}"/>
+<chmod file="@{dest}/@{file}${tibco.wrapper.extension}" perm="u+x" verbose="true" failonerror="true"/>
+<echo message="Substituting variables for @{dest}/@{file}.tra"/>
+<replace file="@{dest}/@{file}.tra">
+<replacefilter token="%TIBCO_HOME_ESC%" value="${tibco.home.esc}"/>
+<replacefilter token="%TIB_HOME%" value="${tibco.home.esc}"/>
+<replacefilter token="%TIBCO_JAVA_VERSION%" value="${tibco.java.version}"/>
+<replacefilter token="%TIBCO_JAVA_HOME_ESC%" value="${tibco.java.home.esc}"/>
+<replacefilter token="%TIB_JAVA_HOME%" value="${tibco.java.home.esc}"/>
+<replacefilter token="%TIBCO_JVM_LIB_ESC%" value="${tibco.jvm.lib.esc}"/>
+<replacefilter token="%TIBCO_JVM_LIB_DIR_ESC%" value="${tibco.jvm.lib.dir.esc}"/>
+<replacefilter token="%JVM_LIB_DIR%" value="${tibco.jvm.lib.dir.esc}"/>
+<replacefilter token="%TIBCO_JVM_LIB_SERVER_ESC%" value="${tibco.jvm.lib.server.esc}"/>
+<replacefilter token="%TIBCO_JVM_LIB_SERVER_DIR_ESC%" value="${tibco.jvm.lib.server.dir.esc}"/>
+<replacefilter token="%TIBCO_JVM_LIB_CLIENT_ESC%" value="${tibco.jvm.lib.client.esc}"/>
+<replacefilter token="%TIBCO_JVM_LIB_CLIENT_DIR_ESC%" value="${tibco.jvm.lib.client.dir.esc}"/>
+<replacefilter token="%PSP%" value="${psp}"/>
+<replacefilter token="%FSP%" value="${fsp}"/>
+<replacefilter token="%PS%" value="${psp}"/>
+<!--  TIBCO_JVM_FLAVOR is not needed as JVM_LIB_DIR_ESC includes it  -->
+<replacefilter token="%TIBCO_JVM_FLAVOR%" value=""/>
+<replacefilter token="%TIBCO_RV_HOME_ESC%" value="${tibco.rv.home.esc}"/>
+<replacefilter token="%RV_HOME%" value="${tibco.rv.home.esc}"/>
+<replacefilter token="%TIBCO_TRA_HOME_ESC%" value="${tibco.tra.home.esc}"/>
+<replacefilter token="%TIBCO_TRA_HOME%" value="${tibco.tra.home.esc}"/>
+<replacefilter token="%TRA_HOME%" value="${tibco.tra.home.esc}"/>
+<replacefilter token="%TRA_APPEND_VERSION%" value="${tibco.tra.short.version}"/>
+<replacefilter token="%TIBCO_BW_HOME_ESC%" value="${tibco.bw.home.esc}"/>
+<replacefilter token="%BW_HOME%" value="${tibco.bw.home.esc}"/>
+<replacefilter token="%TIBCO_DEFCON_HOME_ESC%" value="${tibco.defcon.home.esc}"/>
+<replacefilter token="%TIB_DEFCON_HOME%" value="${tibco.defcon.home.esc}"/>
+<replacefilter token="%TIBCO_DEFCON_HOME%" value="${tibco.defcon.home}"/>
+<replacefilter token="%TIBCO_TRA_APPEND_VERSION%" value="${tibco.tra.short.version}"/>
+<replacefilter token="%BW_PLUGINS_HOME%" value="${tibco.bw.plugins.home}"/>
+<replacefilter token="%TIBCO_BW_PLUGINS_HOME%" value="${tibco.bw.plugins.home}"/>
+</replace>
+</sequential>
+</macrodef>
+<tra.tasks file="defcon" dest="${tibco.defcon.home.esc}/bin"/>
+</target>
+<target name="pre-uninstall" depends="checkOS"> <!--,deleteEntriesFromDesignerTra,deleteEntriesFromBWEngineTra"-->
+<echo message="Pre-Uninstallation of TIBCO ActiveMatrix BusinessWorks(TM) Plug-in for Defcon"/>
+<echo message="tibco.home.esc=${tibco.home.esc}"/>
+<echo message="tibco.defcon.home.esc=${tibco.defcon.home.esc}"/>
+<macrodef name="clean.tra.tasks">
+<attribute name="file"/>
+<attribute name="dest"/>
+<sequential>
+<delete file="@{dest}/@{file}.tra" quiet="true"/>
+<delete file="@{dest}/@{file}${tibco.wrapper.extension}" quiet="true"/>
+</sequential>
+</macrodef>
+<clean.tra.tasks file="defcon" dest="${tibco.defcon.home.esc}/bin"/>
+</target>
+<target name="checkOS">
+<condition property="tibco.os.windows">
+<os family="windows"/>
+</condition>
+<condition property="tibco.os.unix">
+<os family="unix"/>
+</condition>
+<condition property="wrapper" value="pwrap">
+<isset property="tibco.os.windows"/>
+</condition>
+<condition property="wrapper" value="wrap">
+<isset property="tibco.os.unix"/>
+</condition>
+</target>
+</project>

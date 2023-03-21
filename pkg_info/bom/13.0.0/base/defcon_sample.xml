@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<components>
+	<component name="defcon_sample" type="common">
+	<include file="aliases_defcon.xml"/>
+
+	<file src="${exportdir}/lib/defcon.jar" dest="lib/defcon.jar" perm="755" plat="${ALL}"/>
+	
+	</component>
+</components>
